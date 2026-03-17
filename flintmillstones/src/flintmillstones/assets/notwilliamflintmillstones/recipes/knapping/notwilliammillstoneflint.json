@@ -1,0 +1,17 @@
+{
+	ingredient: { type: "item", code: "game:flint" },
+	pattern: [[
+		"__######__",
+		"_########_",
+		"##########",
+		"##########",
+		"####__####",
+		"####__####",
+		"##########",
+		"##########",
+		"_########_",
+		"__######__"
+	]],
+	name: "Flint Millstone",
+	output: { type: "item", code: "notwilliamflintmillstones:notwilliammillstoneflint"  }
+}

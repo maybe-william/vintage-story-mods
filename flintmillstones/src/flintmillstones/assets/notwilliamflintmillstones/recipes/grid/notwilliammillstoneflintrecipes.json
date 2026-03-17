@@ -1,0 +1,12 @@
+[
+	{
+		ingredientPattern: "A,L,A",
+		ingredients: {
+			"A": { type: "item", code: "notwilliamflintmillstones:notwilliammillstoneflint", isTool: true  },
+			"L": { type: "item", code: "game:bone", quantity: 2 }
+		},
+		width: 1,
+		height: 3,
+		output: { type: "item", code: "game:bonemeal", quantity: 1  }
+	}
+]
