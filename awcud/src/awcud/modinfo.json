@@ -1,13 +1,12 @@
 {
-  "Type": 1,
+  "Type": "Content",
   "TextureSize": 32,
   "Name": "Aw Cud",
   "Version": "0.1.0",
   "NetworkVersion": null,
-  "IconPath": null,
+  "IconPath": "modicon.png",
   "Description": "",
   "Website": "",
-  "CoreMod": false,
   "ModID": "notwilliamawcud",
   "Authors": [
     "not_william"
