@@ -1,0 +1,10 @@
+{
+	ingredientPattern: "G,G",
+	enabled: true,
+	ingredients: {
+		"G": { type: "item", code: "game:drygrass", quantity: 1  }
+	},
+	width: 1,
+	height: 2,
+	output: { type: "item", code: "notwilliamcud", quantity: 2  }
+}

@@ -1,0 +1,20 @@
+{
+  "Type": 1,
+  "TextureSize": 32,
+  "Name": "Aw Cud",
+  "Version": "0.1.0",
+  "NetworkVersion": null,
+  "IconPath": null,
+  "Description": "",
+  "Website": "",
+  "CoreMod": false,
+  "ModID": "notwilliamawcud",
+  "Authors": [
+    "not_william"
+  ],
+  "Contributors": [],
+  "Side": "Universal",
+  "RequiredOnClient": true,
+  "RequiredOnServer": true,
+  "Dependencies": {}
+}
