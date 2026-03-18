@@ -3,10 +3,184 @@
 		ingredientPattern: "A,L,A",
 		ingredients: {
 			"A": { type: "item", code: "notwilliamflintmillstones:notwilliammillstoneflint", isTool: true  },
-			"L": { type: "item", code: "game:bone", quantity: 2 }
+			"L": { type: "item", code: "game:bone*", quantity: 2 }
 		},
 		width: 1,
 		height: 3,
 		output: { type: "item", code: "game:bonemeal", quantity: 1  }
+	},
+	{
+		ingredientPattern: "A,L,A",
+		ingredients: {
+			"A": { type: "item", code: "notwilliamflintmillstones:notwilliammillstoneflint", isTool: true  },
+			"L": { type: "item", code: "game:antler-*", quantity: 2 }
+		},
+		width: 1,
+		height: 3,
+		output: { type: "item", code: "game:bonemeal", quantity: 1  }
+	},
+
+
+	{
+		ingredientPattern: "A,L,A",
+		ingredients: {
+			"A": { type: "item", code: "notwilliamflintmillstones:notwilliammillstoneflint", isTool: true  },
+			"L": { type: "item", code: "game:grain-*", quantity: 2, name: "grain-type" }
+		},
+		width: 1,
+		height: 3,
+		output: { type: "item", code: "game:flour-{grain-type}", quantity: 1  }
+	},
+	{
+		ingredientPattern: "A,L,A",
+		ingredients: {
+			"A": { type: "item", code: "notwilliamflintmillstones:notwilliammillstoneflint", isTool: true  },
+			"L": { type: "item", code: "game:rawcassava-dried", quantity: 2 }
+		},
+		width: 1,
+		height: 3,
+		output: { type: "item", code: "game:flour-cassava", quantity: 1  }
+	},
+
+	{
+		ingredientPattern: "A,L,A",
+		ingredients: {
+			"A": { type: "item", code: "notwilliamflintmillstones:notwilliammillstoneflint", isTool: true  },
+			"L": { type: "block", code: "game:seashell-*", quantity: 2 }
+		},
+		width: 1,
+		height: 3,
+		output: { type: "item", code: "game:lime", quantity: 1  }
+	},
+	{
+		ingredientPattern: "A,L,A",
+		ingredients: {
+			"A": { type: "item", code: "notwilliamflintmillstones:notwilliammillstoneflint", isTool: true  },
+			"L": { type: "item", 
+				code: "game:stone-*", 
+				quantity: 2, 
+				"allowedVariants": [ "chalk", "limestone", "whitemarble", "redmarble", "greenmarble" ]
+			}
+		},
+		width: 1,
+		height: 3,
+		output: { type: "item", code: "game:lime", quantity: 1  }
+	},
+
+	{
+		ingredientPattern: "A,L,A",
+		ingredients: {
+			"A": { type: "item", code: "notwilliamflintmillstones:notwilliammillstoneflint", isTool: true  },
+			"L": { type: "item", code: "game:crushed-iron", quantity: 2 }
+		},
+		width: 1,
+		height: 3,
+		output: { type: "item", code: "game:powder-iron-oxide", quantity: 1  }
+	},
+
+	{
+		ingredientPattern: "A,L,A",
+		ingredients: {
+			"A": { type: "item", code: "notwilliamflintmillstones:notwilliammillstoneflint", isTool: true  },
+			"L": { type: "item", code: "game:*sylvite*", quantity: 2 }
+		},
+		width: 1,
+		height: 3,
+		output: { type: "item", code: "game:powder-sylvite", quantity: 1  }
+	},
+	{
+		ingredientPattern: "A,L,A",
+		ingredients: {
+			"A": { type: "item", code: "notwilliamflintmillstones:notwilliammillstoneflint", isTool: true  },
+			"L": { type: "block", code: "game:*sylvite*", quantity: 2 }
+		},
+		width: 1,
+		height: 3,
+		output: { type: "item", code: "game:powder-sylvite", quantity: 1  }
+	},
+
+	{
+		ingredientPattern: "A,L,A",
+		ingredients: {
+			"A": { type: "item", code: "notwilliamflintmillstones:notwilliammillstoneflint", isTool: true  },
+			"L": { type: "item", code: "game:*halite*", quantity: 2 }
+		},
+		width: 1,
+		height: 3,
+		output: { type: "item", code: "game:salt", quantity: 1  }
+	},
+	{
+		ingredientPattern: "A,L,A",
+		ingredients: {
+			"A": { type: "item", code: "notwilliamflintmillstones:notwilliammillstoneflint", isTool: true  },
+			"L": { type: "block", code: "game:*halite*", quantity: 2 }
+		},
+		width: 1,
+		height: 3,
+		output: { type: "item", code: "game:salt", quantity: 1  }
+	},
+
+	{
+		ingredientPattern: "A,L,A",
+		ingredients: {
+			"A": { type: "item", code: "notwilliamflintmillstones:notwilliammillstoneflint", isTool: true  },
+			"L": { type: "item", code: "game:*borax*", quantity: 2 }
+		},
+		width: 1,
+		height: 3,
+		output: { type: "item", code: "game:powder-borax", quantity: 1  }
+	},
+	{
+		ingredientPattern: "A,L,A",
+		ingredients: {
+			"A": { type: "item", code: "notwilliamflintmillstones:notwilliammillstoneflint", isTool: true  },
+			"L": { type: "block", code: "game:*borax*", quantity: 2 }
+		},
+		width: 1,
+		height: 3,
+		output: { type: "item", code: "game:powder-borax", quantity: 1  }
+	},
+
+	{
+		ingredientPattern: "A,L,A",
+		ingredients: {
+			"A": { type: "item", code: "notwilliamflintmillstones:notwilliammillstoneflint", isTool: true  },
+			"L": { type: "item", code: "game:*sulfur*", quantity: 2 }
+		},
+		width: 1,
+		height: 3,
+		output: { type: "item", code: "game:powder-sulfur", quantity: 1  }
+	},
+	{
+		ingredientPattern: "A,L,A",
+		ingredients: {
+			"A": { type: "item", code: "notwilliamflintmillstones:notwilliammillstoneflint", isTool: true  },
+			"L": { type: "block", code: "game:*sulfur*", quantity: 2 }
+		},
+		width: 1,
+		height: 3,
+		output: { type: "item", code: "game:powder-sulfur", quantity: 1  }
+	},
+
+	{
+		ingredientPattern: "A,L,A",
+		ingredients: {
+			"A": { type: "item", code: "notwilliamflintmillstones:notwilliammillstoneflint", isTool: true  },
+			"L": { type: "item", code: "game:charcoal", quantity: 2 }
+		},
+		width: 1,
+		height: 3,
+		output: { type: "item", code: "game:powder-charcoal", quantity: 1  }
+	},
+
+	{
+		ingredientPattern: "A,L,A",
+		ingredients: {
+			"A": { type: "item", code: "notwilliamflintmillstones:notwilliammillstoneflint", isTool: true  },
+			"L": { type: "item", code: "game:calcined-flint", quantity: 2 }
+		},
+		width: 1,
+		height: 3,
+		output: { type: "item", code: "game:powder-flint", quantity: 1  }
 	}
 ]
