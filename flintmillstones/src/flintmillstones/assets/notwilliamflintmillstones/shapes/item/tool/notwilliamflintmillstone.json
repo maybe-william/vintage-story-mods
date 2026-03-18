@@ -9,7 +9,7 @@
 		"flint": [32,16]
 	},
 	"textures": {
-		"flint": "game:item/tool/material/flint"
+		"flint": "notwilliamflintmillstones:item/tool/material/flinthd"
 	},
 	"elements": [
 		{
