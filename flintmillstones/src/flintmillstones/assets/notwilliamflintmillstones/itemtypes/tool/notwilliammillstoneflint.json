@@ -5,27 +5,22 @@
 		handbook: {
             "ignoreCreativeInvSection": true
 		},
-		toolrackTransform: {
-			rotation: { y: 1, z: -1 },
-			translation: { x: -0.3, y: 0.6 },
-			scale: 1.25,
-		},
 		groundStorageTransform: {
-			translation: { x: 0, y: 0.18, z: -0.165 },
-			rotation: { x: 26, y: 88, z: -87 },
+			translation: { x: 0, y: -0.07, z: 0.0 },
+			rotation: { x: 0, y: 0, z: 0 },
 			scale: 0.88
 		}
 	},
 	behaviors: [{ 
 		name: "GroundStorable",
 		properties: {
-			layout: 'WallHalves',
-			wallOffY: 1,
+			layout: 'SingleCenter',
 			ctrlKey: true,
 			selectionBox: { x1: 0, y1: 0, z1: 0, x2: 1, y2: 0.1, z2: 1 },
 			collisionBox: { x1: 0, y1: 0, z1: 0, x2: 0, y2: 0, z2: 0 },
 		}
 	}],
+	shape: { base: "notwilliamflintmillstones:item/tool/notwilliamflintmillstone" },
 	tooltierbytype: {
 		"*": 1,
 	},
@@ -35,9 +30,9 @@
 	creativeinventory: { "general": ["*"], "items": ["*"], "tools": ["*"] },
 	guiTransform: {
 		translation: { x: 0, y: 0, z: 0 },
-		rotation: { x: -89, y: 41, z: 33 },
-		origin: { x: 0.88, y: 0, z: 0.4 },
-		scale: 2.42
+		rotation: { x: -90, y: -22.5, z: 22.5 },
+		origin: { x: 0.5, y: 0.2, z: 0.55 },
+		scale: 1.25
 	},
 	fpHandTransform: {
 		translation: { x: -0.3, y: -0.5, z: 0.3 },
@@ -48,7 +43,7 @@
 	groundTransform: {
 		translation: { x: 0, y: 0, z: 0 },
 		rotation: { x: 0, y: 0, z: 0 },
-		origin: { x: 0.5, y: 0, z: 0.5 },
+		origin: { x: 0, y: 0, z: 0 },
 		scale: 3.4
 	},
 	tpHandTransform: {
