@@ -9,7 +9,7 @@
         }
 	},
 	nutritionPropsByType: {
-		"*": { satiety: 300, foodcategory: "NoNutrition" },
+		"*": { satiety: 80, foodcategory: "NoNutrition" },
 	},
     guiTransform: {
 		translation: { x: 0, y: 0, z: 0 },
