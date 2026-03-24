@@ -9,10 +9,11 @@ echo "Running build from: $(pwd)"
 
 VERSION=$(cat ../src/awcud/modinfo.json | grep '"Version"' | grep -oE '[0-9\.]+')
 MODID=$(cat ../src/awcud/modinfo.json | grep '"ModID"' | cut -f2 -d':' | tr -d '"' | tr -d ' ' | tr -d ',')
-echo "Building $MODID version $VERSION"
+GAMEVERSION=$(cat ../src/awcud/gameversion | tr -d ' ')
+echo "Building $MODID version $VERSION for Game Version $GAMEVERSION"
 
-rm ../dist/$MODID-$VERSION.zip || true
+rm ../dist/$MODID-$VERSION-$GAMEVERSION.zip || true
 cd ../src/awcud
-zip -r ../../dist/$MODID-$VERSION.zip ./* -x "*.DS_Store"
+zip -r ../../dist/$MODID-$VERSION-$GAMEVERSION.zip ./* -x "*.DS_Store"
 
-echo "Build complete: for file dist/$MODID-$VERSION.zip"
+echo "Build complete: for file dist/$MODID-$VERSION-$GAMEVERSION.zip"
