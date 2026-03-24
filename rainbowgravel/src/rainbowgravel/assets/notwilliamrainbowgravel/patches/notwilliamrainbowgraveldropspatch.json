@@ -1,0 +1,19 @@
+[
+  {
+    "file": "game:blocktypes/wood/pan",
+    "op": "replace",
+    "path": "/attributes/panningDrops/@(sand|gravel|sandwavy)-.*",
+    "value": [
+      {
+        "type": "item",
+        "code": "game:stone-limestone",
+        "chance": { "avg": 0.30, "var": 0 }
+      },
+      {
+        "type": "block",
+        "code": "game:metal-parts",
+        "chance": { "avg": 0.70, "var": 0 }
+      }
+    ]
+  }
+]
