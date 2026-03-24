@@ -7,9 +7,7 @@ cd "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "Running build from: $(pwd)"
 
-#TODO: Call the patch-building python script with correct configuration 
-#- in order to generate the correct panning probabilities.
-#python3 ./build_patch.py ../src/rainbowgravel/patches/patch_file.json
+python3 ./build_patch.py ../src/rainbowgravel/assets/notwilliamrainbowgravel/patches/notwilliamrainbowgraveldropspatch.json
 
 VERSION=$(cat ../src/rainbowgravel/modinfo.json | grep '"Version"' | grep -oE '[0-9\.]+')
 MODID=$(cat ../src/rainbowgravel/modinfo.json | grep '"ModID"' | cut -f2 -d':' | tr -d '"' | tr -d ' ' | tr -d ',')

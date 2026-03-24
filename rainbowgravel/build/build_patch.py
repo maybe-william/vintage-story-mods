@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import sys
 import re
 from jinja2 import Template
 from collections import deque
@@ -206,6 +207,12 @@ def traverse(tree):
             
 
 if __name__ == "__main__":
+    patch_file = sys.argv[1] if len(sys.argv) > 1 else None
+    if patch_file is None:
+        print("Usage: build_patch.py [patch_file]")
+        print("No patch file provided. Aborting.")
+        exit(1)
+
     item_codes = {}
     block_codes = {}
 
@@ -230,4 +237,8 @@ if __name__ == "__main__":
     for item in items:
         drops.append(("item", item[0], item[1]))
     
-    print(PATCH_FORMAT.render(drops=drops))
+    # print(PATCH_FORMAT.render(drops=drops))
+
+    with open(patch_file, "w") as f:
+        f.write(PATCH_FORMAT.render(drops=drops))
+
