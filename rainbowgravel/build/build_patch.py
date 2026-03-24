@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import re
 from jinja2 import Template
+from collections import deque
 
 # type is "block" or "item"
 # code is the code of the block or item, with "game:" prefix ("stone-limestone")
@@ -87,14 +88,54 @@ def filter(string, item=True):
             return False
     return True
 
-def structurize(ls):
-    """Takes a list as input and returns a structurized dictionary for variants"""
-    ret = {}
-    for item in ls:
-        pre = item.split("-")[0]
-        post = '-'.join(item.split("-")[1:])
-        ret[pre] = ret.get(pre, []) + [post]
-    return ret
+#! AI Generated
+def structurize(codes):
+    """
+    Build a nested tree.
+
+    Example for:
+        stone-limestone
+        stone-granite
+        gear-temporal
+
+    Produces:
+    {
+        "stone": {
+            "_terminal": False,
+            "_children": {
+                "limestone": {"_terminal": True, "_children": {}},
+                "granite": {"_terminal": True, "_children": {}}
+            }
+        },
+        "gear": {
+            "_terminal": False,
+            "_children": {
+                "temporal": {"_terminal": True, "_children": {}}
+            }
+        }
+    }
+    """
+    root = {}
+
+    for code in codes:
+        parts = code.split("-")
+        current_level = root
+
+        for i, part in enumerate(parts):
+            if part not in current_level:
+                current_level[part] = {
+                    "_terminal": False,
+                    "_children": {}
+                }
+
+            node = current_level[part]
+
+            if i == len(parts) - 1:
+                node["_terminal"] = True
+
+            current_level = node["_children"]
+
+    return root
 
 def get_counts(dic):
     """Converts a dict of lists to a new dict of counts"""
@@ -116,6 +157,54 @@ def simple_debug_counts(filtered_list):
     item_codes = get_counts(item_codes)
     print(item_codes)
 
+#! AI Generated
+def traverse(tree):
+    """
+    Breadth-first traversal.
+
+    Probability model:
+    - Each node splits its incoming probability equally among:
+      - one 'stop here' option if the node is terminal
+      - each child continuation
+
+    Returns:
+        list of (code, probability)
+    """
+    finalized = []
+    queue = deque()
+
+    if not tree:
+        return finalized
+
+    root_count = len(tree)
+    root_prob = 1.0 / root_count
+
+    for part, node in tree.items():
+        queue.append((part, node, root_prob))
+
+    while queue:
+        code_so_far, node, prob_so_far = queue.popleft()
+
+        children = node["_children"]
+        is_terminal = node["_terminal"]
+
+        num_choices = len(children) + (1 if is_terminal else 0)
+
+        if num_choices == 0:
+            continue  # should never happen in a valid tree
+
+        split_prob = prob_so_far / num_choices
+
+        if is_terminal:
+            finalized.append((code_so_far, split_prob))
+
+        for child_part, child_node in children.items():
+            new_code = f"{code_so_far}-{child_part}"
+            queue.append((new_code, child_node, split_prob))
+
+    return finalized
+            
+
 if __name__ == "__main__":
     item_codes = {}
     block_codes = {}
@@ -128,10 +217,17 @@ if __name__ == "__main__":
     # simple_debug_counts(item_list)
     # simple_debug_counts(block_list)
 
+    # print(PATCH_FORMAT.render(drops=[
+    #     ("item", "stone-limestone", 0.30),
+    #     ("block", "metal-parts", 0.70)
+    # ]))
+
     # TODO: build out the actual patch with structurized item list
 
-    print(PATCH_FORMAT.render(drops=[
-        ("item", "stone-limestone", 0.30),
-        ("block", "metal-parts", 0.70)
-    ]))
+    # print(traverse(structurize(["stone", "stone-limestone", "stone-granite", "gear-temporal", "stone-limestone-stone-slate", "gear-temporal-rusty"])))
 
+    items = traverse(structurize(item_list))
+    for item in items:
+        drops.append(("item", item[0], item[1]))
+    
+    print(PATCH_FORMAT.render(drops=drops))
