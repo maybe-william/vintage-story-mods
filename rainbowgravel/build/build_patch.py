@@ -67,7 +67,10 @@ items_blacklist = [
     "workitem.*",
     "clayworkitem.*",
 
-    "boatseat.*"
+    "boatseat.*",
+
+    "shield-.*",
+    "ontree-.*"
 ]
 blocks_blacklist = []
 
