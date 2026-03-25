@@ -72,20 +72,65 @@ items_blacklist = [
     "shield-.*",
     "ontree-.*"
 ]
-blocks_blacklist = []
+blocks_blacklist = [
+    "creative.*",
+    "slopetestobj",
+    "vertexeater",
+
+    ".*commandblock",
+    "tickerblock",
+    "conditionalblock",
+    "randomizer",
+    "meta",
+    "worldgenhook",
+
+    "multiblock.*",
+    "mpmultiblockwood",
+    "pulverizerframe",
+    "mppulverizertop",
+    "helvehammerbase"
+
+    "jonas.*",
+    "tobtlocator",
+    "resonator",
+    "riftward"
+
+    "dev.*",
+    "dpanel",
+
+    "chiseledblock.*",
+    "microblock.*",
+    "overlay.*",
+    "transition.*"
+]
+
+#Whitelists for debugging purposes:
+items_whitelist = [
+]
+blocks_whitelist = [
+]
 
 def compile_regexes():
     """Compiles the regexes in the blacklists for faster matching (not fully necessary)"""
-    blacklists = [items_blacklist, blocks_blacklist]
-    for bl in blacklists:
-        for i in range(len(bl)):
-            bl[i] = re.compile(bl[i])
+    lists = [items_blacklist, blocks_blacklist, items_whitelist, blocks_whitelist]
+    for l in lists:
+        for i in range(len(l)):
+            l[i] = re.compile(l[i])
 compile_regexes()
 
 
 
-def filter(string, item=True):
-    """Returns True if the string is not blacklisted, False otherwise"""
+def filter(string, item=True, whitelist=False):
+    """Returns True if the string is not blacklisted, False otherwise.
+    Whitelist is for debugging and testing purposes."""
+    if whitelist:
+        wl = items_whitelist if item else blocks_whitelist
+        for pattern in wl:
+            if re.match(pattern, string):
+                print(f"INFO: Whitelisting: Pattern {pattern} matched string {string}")
+                return True
+        return False
+
     bl = items_blacklist if item else blocks_blacklist
     for pattern in bl:
         if re.match(pattern, string):
@@ -148,11 +193,11 @@ def get_counts(dic):
         counts[k] = len(v)
     return counts
 
-def get_filtered_list(filename="all-item-codes", item=True):
+def get_filtered_list(filename="all-item-codes", item=True, whitelist=False):
     """Gets the filtered list of either items or blocks from a file"""
     with open(filename, "r") as f:
         item_codes = f.read().splitlines()
-        item_codes = [code for code in item_codes if filter(code, item=item)]
+        item_codes = [code for code in item_codes if filter(code, item=item, whitelist=whitelist)]
     return item_codes
 
 def simple_debug_counts(filtered_list):
@@ -236,9 +281,15 @@ if __name__ == "__main__":
 
     # print(traverse(structurize(["stone", "stone-limestone", "stone-granite", "gear-temporal", "stone-limestone-stone-slate", "gear-temporal-rusty"])))
 
+    # Halving probabilities because both blocks and items would 
+    # add up to 2.0 together
     items = traverse(structurize(item_list))
     for item in items:
-        drops.append(("item", item[0], item[1]))
+        drops.append(("item", item[0], item[1] / 2))
+
+    blocks = traverse(structurize(block_list))
+    for block in blocks:
+        drops.append(("block", block[0], block[1] / 2))
     
     # print(PATCH_FORMAT.render(drops=drops))
 
