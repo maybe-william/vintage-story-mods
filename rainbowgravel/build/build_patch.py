@@ -11,8 +11,14 @@ PATCH_FORMAT = Template("""
 [
   {
     "file": "game:blocktypes/wood/pan",
-    "op": "replace",
-    "path": "/attributes/panningDrops/@(sand|gravel|sandwavy)-.*",
+    "op": "move",
+    "fromPath": "/attributes/panningDrops/@(sand|gravel|sandwavy)-.*",
+    "path": "/attributes/tempPanningDrops"
+  },
+  {
+    "file": "game:blocktypes/wood/pan",
+    "op": "add",
+    "path": "/attributes/panningDrops/@(.*gravel.*rainbow.*)",
     "value": [
     {% for item in drops %}
       {
@@ -23,6 +29,12 @@ PATCH_FORMAT = Template("""
     {% if not loop.last %},{% endif %}
     {% endfor %}
     ]
+  },
+  {
+    "file": "game:blocktypes/wood/pan",
+    "op": "move",
+    "fromPath": "/attributes/tempPanningDrops",
+    "path": "/attributes/panningDrops/@(sand|gravel|sandwavy)-.*"
   }
 ]
 """)

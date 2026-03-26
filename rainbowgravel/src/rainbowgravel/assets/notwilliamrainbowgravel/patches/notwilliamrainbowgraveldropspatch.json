@@ -2,8 +2,14 @@
 [
   {
     "file": "game:blocktypes/wood/pan",
-    "op": "replace",
-    "path": "/attributes/panningDrops/@(sand|gravel|sandwavy)-.*",
+    "op": "move",
+    "fromPath": "/attributes/panningDrops/@(sand|gravel|sandwavy)-.*",
+    "path": "/attributes/tempPanningDrops"
+  },
+  {
+    "file": "game:blocktypes/wood/pan",
+    "op": "add",
+    "path": "/attributes/panningDrops/@(.*gravel.*rainbow.*)",
     "value": [
     
       {
@@ -111475,5 +111481,11 @@
     
     
     ]
+  },
+  {
+    "file": "game:blocktypes/wood/pan",
+    "op": "move",
+    "fromPath": "/attributes/tempPanningDrops",
+    "path": "/attributes/panningDrops/@(sand|gravel|sandwavy)-.*"
   }
 ]
