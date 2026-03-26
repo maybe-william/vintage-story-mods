@@ -1,0 +1,35 @@
+[
+	{
+		ingredientPattern: "A,L",
+		ingredients: {
+			"A": { type: "item", code: "game:gear-temporal", quantity: 1 },
+			"L": { type: "block", code: "game:gravel-*", quantity: 1 }
+		},
+		width: 1,
+		height: 2,
+        shapeless: true,
+		output: { type: "block", code: "gravel-rainbow-limestone", quantity: 1  }
+	},
+	{
+		ingredientPattern: "A,L",
+		ingredients: {
+			"A": { type: "item", code: "game:gear-temporal", quantity: 1 },
+			"L": { type: "block", code: "game:sand-*", quantity: 1 }
+		},
+		width: 1,
+		height: 2,
+        shapeless: true,
+		output: { type: "block", code: "gravel-rainbow-limestone", quantity: 1  }
+	},
+	{
+		ingredientPattern: "A,L",
+		ingredients: {
+			"A": { type: "item", code: "game:gear-temporal", quantity: 1 },
+			"L": { type: "block", code: "game:sandwavy-*", quantity: 1 }
+		},
+		width: 1,
+		height: 2,
+        shapeless: true,
+		output: { type: "block", code: "gravel-rainbow-limestone", quantity: 1  }
+	}
+]
