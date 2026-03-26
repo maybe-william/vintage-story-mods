@@ -42,19 +42,6 @@ PATCH_FORMAT = Template("""
 ]
 """)
 
-# from jinja2 import Template
-
-# template_string = """
-# My favorite fruits are:
-# {% for fruit in fruits %}
-# - {{ fruit }}
-# {% endfor %}
-# """
-# data = {"fruits": ["apple", "banana", "cherry"]}
-# output = Template(template_string).render(**data)
-# print(output.strip())
-
-
 
 items_blacklist = [
     "magicwand.*",
@@ -318,8 +305,6 @@ if __name__ == "__main__":
     #     ("item", "stone-limestone", 0.30),
     #     ("block", "metal-parts", 0.70)
     # ]))
-
-    # TODO: build out the actual patch with structurized item list
 
     # print(traverse(structurize(["stone", "stone-limestone", "stone-granite", "gear-temporal", "stone-limestone-stone-slate", "gear-temporal-rusty"])))
 
