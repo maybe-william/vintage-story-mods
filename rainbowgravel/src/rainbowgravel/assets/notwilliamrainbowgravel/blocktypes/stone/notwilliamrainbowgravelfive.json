@@ -3,7 +3,8 @@
 	// behaviors: [{name: "UnstableFalling", properties: { fallSound: "effect/rockslide", dustIntensity: 1, fallSidewaysChance: 0.75 }}],	
 	variantgroups: [
 		// { loadFromProperties: "game:block/rock", code: "rock" },
-		{ code: "rock", states: ["limestone"] }
+		{ code: "rock", states: ["limestone"] },
+		{ code: "level", states: ["five"] }
 	],
 	creativeinventory: { "general": ["*"], "terrain": ["*"] },
 	shape: { 
@@ -22,7 +23,7 @@
 	attributes: {
 		mapColorCode: "desert",
 		pannable: true,
-		pannedBlock: "notwilliamrainbowgravel:gravel-rainbow-{rock}-seven",
+		pannedBlock: "notwilliamrainbowgravel:gravel-rainbow-{rock}-four",
 		preventsDecay: true,
 		allowUnstablePlacement: true,
 		handbook: { groupBy: ["gravel-*"] }
