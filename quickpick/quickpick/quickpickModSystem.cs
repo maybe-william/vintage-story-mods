@@ -110,11 +110,19 @@ namespace quickpick
 
             if (!QuickPickLogic.IsValidQuickPickUse(item, activeSlot, fromPlayer.Entity, blockSel, out _))
                 return;
-
-            PrintProbeResultsMethod.Invoke(
-                item,
-                new object[] { fromPlayer.Entity.World, fromPlayer, activeSlot, blockSel.Position }
-            );
+            try
+            {
+                PrintProbeResultsMethod.Invoke(
+                    item,
+                    new object[] { fromPlayer.Entity.World, fromPlayer, activeSlot, blockSel.Position }
+                );
+            }
+            catch (Exception ex)
+            {
+                Api?.Logger.Warning("[QuickPick] PrintProbeResults failed: " + ex.InnerException?.Message ??
+                                    ex.Message);
+                fromPlayer.SendIngameError("Quickpick is not available in this world type.");
+            }
 
             Api?.Logger.Notification($"[QuickPick] Server executed quickpick at {msg.X},{msg.Y},{msg.Z}");
         }
