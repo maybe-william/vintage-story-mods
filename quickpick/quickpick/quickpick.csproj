@@ -11,6 +11,9 @@
         <Reference Include="0Harmony">
           <HintPath>$(VINTAGE_STORY)/Lib/0Harmony.dll</HintPath>
         </Reference>
+        <Reference Include="protobuf-net">
+          <HintPath>$(VINTAGE_STORY)/Lib/protobuf-net.dll</HintPath>
+        </Reference>
         <Reference Include="VintagestoryAPI">
             <HintPath>$(VINTAGE_STORY)/VintagestoryAPI.dll</HintPath>
             <Private>false</Private>
