@@ -17,175 +17,162 @@ namespace quickpick
 
         internal static Type PropickType;
         internal static FieldInfo ToolModesField;
-        internal static MethodInfo PrintProbeResultsMethod;
+        internal static ICoreAPI Api;
+        internal static ItemQuickProPick QuickProPick;
 
         public override void Start(ICoreAPI api)
         {
+            Api = api;
             harmony = new Harmony(Mod.Info.ModID);
 
-            TryResolveRuntimeTargets(api);
-            TryApplyPatches(api);
+            PropickType = AccessTools.TypeByName("Vintagestory.GameContent.ItemProspectingPick");
+            if (PropickType == null)
+            {
+                api.Logger.Warning("[QuickPick] Could not resolve ItemProspectingPick");
+                return;
+            }
 
-            api.Logger.Notification("[QuickPick] loaded");
+            ToolModesField = AccessTools.Field(PropickType, "toolModes");
+            if (ToolModesField == null)
+            {
+                api.Logger.Warning("[QuickPick] Could not resolve toolModes field");
+                return;
+            }
+
+            QuickProPick = new ItemQuickProPick(api);
+
+            harmony.Patch(
+                AccessTools.Method(PropickType, "GetToolModes"),
+                postfix: new HarmonyMethod(typeof(QuickPickPatches), nameof(QuickPickPatches.GetToolModesPostfix))
+            );
+
+            harmony.Patch(
+                AccessTools.Method(PropickType, "GetToolMode"),
+                postfix: new HarmonyMethod(typeof(QuickPickPatches), nameof(QuickPickPatches.GetToolModePostfix))
+            );
+
+            harmony.Patch(
+                AccessTools.Method(PropickType, "SetToolMode"),
+                prefix: new HarmonyMethod(typeof(QuickPickPatches), nameof(QuickPickPatches.SetToolModePrefix))
+            );
+
+            api.Logger.Notification("[QuickPick] Virtual propick mode patches applied");
         }
 
         public override void Dispose()
         {
             harmony?.UnpatchAll(Mod.Info.ModID);
         }
+    }
 
-        private void TryResolveRuntimeTargets(ICoreAPI api)
+
+    /// <summary>
+    /// Virtual subclass to be patched in for get/set toolMode(s), always appending custom toolMode
+    /// </summary>
+    public class ItemQuickProPick
+    {
+        private readonly ICoreAPI api;
+        private SkillItem quickpickMode;
+
+        public ItemQuickProPick(ICoreAPI api)
         {
-            // Adjust this string if dnSpy shows a different runtime fullname in 1.21.6
-            const string propickFullName = "Vintagestory.GameContent.ItemProspectingPick";
-
-            PropickType =
-                AccessTools.TypeByName(propickFullName) ??
-                AppDomain.CurrentDomain.GetAssemblies()
-                    .Select(a => a.GetType(propickFullName, false))
-                    .FirstOrDefault(t => t != null);
-
-            if (PropickType == null)
-            {
-                api.Logger.Warning("[QuickPick] Could not resolve propick type at runtime.");
-                return;
-            }
-
-            ToolModesField = AccessTools.Field(PropickType, "toolModes");
-            PrintProbeResultsMethod = AccessTools.Method(PropickType, "PrintProbeResults");
-
-            api.Logger.Notification($"[QuickPick] Resolved type: {PropickType.FullName}");
-            api.Logger.Notification($"[QuickPick] toolModes field found: {ToolModesField != null}");
-            api.Logger.Notification($"[QuickPick] PrintProbeResults found: {PrintProbeResultsMethod != null}");
+            this.api = api;
         }
 
-        private void TryApplyPatches(ICoreAPI api)
+        private SkillItem QuickpickMode
         {
-            if (PropickType == null) return;
-
-            // 1) Patch propick OnLoaded directly
-            var onLoaded = AccessTools.Method(PropickType, "OnLoaded");
-            if (onLoaded != null)
+            get
             {
-                harmony.Patch(
-                    onLoaded,
-                    postfix: new HarmonyMethod(typeof(QuickPickPatches), nameof(QuickPickPatches.PropickOnLoadedPostfix))
-                );
+                if (quickpickMode != null) return quickpickMode;
 
-                api.Logger.Notification("[QuickPick] Patched propick OnLoaded");
-            }
-            else
-            {
-                api.Logger.Warning("[QuickPick] Could not find propick OnLoaded");
-            }
+                quickpickMode = new SkillItem
+                {
+                    Code = new AssetLocation("quickpick"),
+                    Name = "Quickpick Mode"
+                };
 
-            // 2) Right-click patch:
-            // If propick declares OnHeldInteractStart, patch that.
-            // Otherwise fall back to base CollectibleObject and gate by runtime type.
-            var heldInteract = AccessTools.DeclaredMethod(PropickType, "OnHeldInteractStart")
-                              ?? AccessTools.Method(typeof(CollectibleObject), "OnHeldInteractStart");
+                if (api is ICoreClientAPI capi)
+                {
+                    quickpickMode.WithIcon(
+                        capi,
+                        capi.Gui.LoadSvgWithPadding(
+                            new AssetLocation("textures/icons/heatmap.svg"),
+                            48, 48, 5,
+                            ColorUtil.WhiteArgb
+                        )
+                    );
+                    quickpickMode.TexturePremultipliedAlpha = false;
+                }
 
-            if (heldInteract != null)
-            {
-                harmony.Patch(
-                    heldInteract,
-                    prefix: new HarmonyMethod(typeof(QuickPickPatches), nameof(QuickPickPatches.OnHeldInteractStartPrefix))
-                );
+                return quickpickMode;
+            }
+        }
 
-                api.Logger.Notification($"[QuickPick] Patched held interact target: {heldInteract.DeclaringType?.FullName}.{heldInteract.Name}");
-            }
-            else
-            {
-                api.Logger.Warning("[QuickPick] Could not find held interact target");
-            }
+        private SkillItem[] RawModes(object instance)
+        {
+            return quickpickModSystem.ToolModesField?.GetValue(instance) as SkillItem[];
+        }
+
+        public SkillItem[] GetToolModes(object instance)
+        {
+            var raw = RawModes(instance);
+            if (raw == null || raw.Length == 0) return raw;
+
+            if (raw.Any(m => m?.Code?.Path == "quickpick")) return raw;
+
+            var result = new SkillItem[raw.Length + 1];
+            Array.Copy(raw, result, raw.Length);
+            result[result.Length - 1] = QuickpickMode;
+            return result;
+        }
+
+        public int GetToolMode(object instance, ItemSlot slot)
+        {
+            var modes = GetToolModes(instance);
+            if (modes == null || modes.Length == 0) return 0;
+
+            int mode = slot?.Itemstack?.Attributes?.GetInt("toolMode") ?? 0;
+
+            if (mode < 0) mode = 0;
+            if (mode >= modes.Length) mode = modes.Length - 1;
+
+            return mode;
+        }
+
+        public void SetToolMode(object instance, ItemSlot slot, int toolMode)
+        {
+            var modes = GetToolModes(instance);
+            if (slot?.Itemstack == null || modes == null || modes.Length == 0) return;
+
+            if (toolMode < 0) toolMode = 0;
+            if (toolMode >= modes.Length) toolMode = modes.Length - 1;
+
+            slot.Itemstack.Attributes.SetInt("toolMode", toolMode);
         }
     }
 
+    /// <summary>
+    /// for the literal patching in of the "virtual subclass"
+    /// </summary>
     public static class QuickPickPatches
     {
-        public static void PropickOnLoadedPostfix(object __instance, ICoreAPI api)
+        public static void GetToolModesPostfix(object __instance, ref SkillItem[] __result)
         {
-            if (__instance == null) return;
-            if (quickpickModSystem.PropickType == null) return;
             if (!quickpickModSystem.PropickType.IsInstanceOfType(__instance)) return;
-            if (quickpickModSystem.ToolModesField == null) return;
-
-            var existingModes = quickpickModSystem.ToolModesField.GetValue(__instance) as SkillItem[];
-            if (existingModes == null || existingModes.Length == 0) return;
-
-            if (existingModes.Any(m => m?.Code?.Path == "quickpick")) return;
-
-            var newModes = new SkillItem[existingModes.Length + 1];
-            Array.Copy(existingModes, newModes, existingModes.Length);
-
-            var quickpick = new SkillItem
-            {
-                Code = new AssetLocation("quickpick"),
-                Name = "Quickpick Mode"
-            };
-
-            if (api is ICoreClientAPI capi)
-            {
-                quickpick.WithIcon(
-                    capi,
-                    capi.Gui.LoadSvgWithPadding(
-                        new AssetLocation("textures/icons/heatmap.svg"),
-                        48, 48, 5,
-                        ColorUtil.WhiteArgb
-                    )
-                );
-                quickpick.TexturePremultipliedAlpha = false;
-            }
-
-            newModes[newModes.Length - 1] = quickpick;
-            quickpickModSystem.ToolModesField.SetValue(__instance, newModes);
-
-            api.Logger.Notification("[QuickPick] Added quickpick tool mode");
+            __result = quickpickModSystem.QuickProPick.GetToolModes(__instance);
         }
 
-        public static bool OnHeldInteractStartPrefix(
-            object __instance,
-            ItemSlot slot,
-            EntityAgent byEntity,
-            BlockSelection blockSel,
-            EntitySelection entitySel,
-            bool firstEvent,
-            ref EnumHandHandling handling)
+        public static void GetToolModePostfix(object __instance, ItemSlot slot, ref int __result)
         {
-            if (__instance == null) return true;
-            if (quickpickModSystem.PropickType == null) return true;
+            if (!quickpickModSystem.PropickType.IsInstanceOfType(__instance)) return;
+            __result = quickpickModSystem.QuickProPick.GetToolMode(__instance, slot);
+        }
+
+        public static bool SetToolModePrefix(object __instance, ItemSlot slot, int toolMode)
+        {
             if (!quickpickModSystem.PropickType.IsInstanceOfType(__instance)) return true;
 
-            if (!firstEvent) return true;
-            if (slot?.Itemstack == null) return true;
-            if (blockSel == null) return true;
-            if (byEntity == null) return true;
-            if (quickpickModSystem.ToolModesField == null) return true;
-            if (quickpickModSystem.PrintProbeResultsMethod == null) return true;
-
-            var toolModes = quickpickModSystem.ToolModesField.GetValue(__instance) as SkillItem[];
-            if (toolModes == null || toolModes.Length == 0) return true;
-
-            int mode = slot.Itemstack.Attributes.GetInt("toolMode");
-            if (mode < 0 || mode >= toolModes.Length) return true;
-            if (toolModes[mode]?.Code?.Path != "quickpick") return true;
-
-            var world = byEntity.World;
-            if (world == null) return true;
-
-            var eplr = byEntity as EntityPlayer;
-            if (eplr == null) return true;
-
-            var byPlayer = world.PlayerByUid(eplr.PlayerUID);
-            var splr = byPlayer as IServerPlayer;
-            if (splr == null) return true;
-
-            quickpickModSystem.PrintProbeResultsMethod.Invoke(
-                __instance,
-                new object[] { world, splr, slot, blockSel.Position }
-            );
-
-            handling = EnumHandHandling.PreventDefault;
+            quickpickModSystem.QuickProPick.SetToolMode(__instance, slot, toolMode);
             return false;
         }
     }
