@@ -32,4 +32,8 @@
         </Content>
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\quickpick-helpers\quickpick-helpers.fsproj" />
+    </ItemGroup>
+
 </Project>

@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <RootNamespace>quickpick</RootNamespace>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="QuickPickLogic.fs" />
+        <Compile Include="FDispatch.fs" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Reference Include="VintagestoryAPI">
+        <HintPath>$(VINTAGE_STORY)\VintagestoryAPI.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
+</Project>
+
