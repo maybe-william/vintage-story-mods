@@ -15,7 +15,7 @@ namespace quickpick
 {
     public static class OreMapLayerPatches
     {
-        private const string QuickPickGuidPrefix = "quickpick:";
+        private const string QuickPickMetaKey = "quickpick_metadata";
 
         private static ICoreAPI api;
 
@@ -37,7 +37,9 @@ namespace quickpick
         private static FieldInfo mentionThresholdField;
         private static FieldInfo oreReadingTotalFactorField;
         private static FieldInfo oreMapComponentColorField;
-
+        private static Type oreReadingType;
+        private static FieldInfo oreReadingPptField;
+        private static FieldInfo oreReadingDepositCodeField;
         private static PropertyInfo readingGuidProperty;
 
         public static void RegisterPatches(Harmony harmony, ICoreAPI coreApi, Type propickType)
@@ -88,12 +90,14 @@ namespace quickpick
             oreReadingsField = AccessTools.Field(propickReadingType, "OreReadings");
             mentionThresholdField = AccessTools.Field(propickReadingType, "MentionThreshold");
             readingGuidProperty = AccessTools.Property(propickReadingType, "Guid");
-
-            var oreReadingType = AccessTools.TypeByName("Vintagestory.GameContent.OreReading");
+                        
+            // Prepare to patch fake metadata OreReading for quickpick handle
+            oreReadingType = AccessTools.TypeByName("Vintagestory.GameContent.OreReading");
             oreReadingTotalFactorField = oreReadingType == null ? null : AccessTools.Field(oreReadingType, "TotalFactor");
-
+            oreReadingPptField = oreReadingType == null ? null : AccessTools.Field(oreReadingType, "PartsPerThousand");
+            oreReadingDepositCodeField = oreReadingType == null ? null : AccessTools.Field(oreReadingType, "DepositCode");
             oreMapComponentColorField = AccessTools.Field(oreMapComponentType, "color");
-
+            
             if (printProbeResultsMethod != null)
             {
                 harmony.Patch(
@@ -120,7 +124,8 @@ namespace quickpick
 
             api.Logger.Notification("[QuickPick] OreMapLayer patches applied");
         }
-
+        
+        
         public static bool PrintProbeResultsPrefix(
             object __instance,
             IWorldAccessor world,
@@ -157,7 +162,40 @@ namespace quickpick
             }
 
             TagAsQuickPick(results);
+            
+            api?.Logger.Notification("[QuickPick] After TagAsQuickPick");
 
+            
+            
+            
+            
+            if (oreReadingsField == null)
+            {
+                api?.Logger.Notification("[QuickPick] oreReadingsField is null");
+            }
+            else
+            {
+                var dictObj = oreReadingsField.GetValue(results);
+
+                if (dictObj is IDictionary dict)
+                {
+                    var keys = string.Join(", ", dict.Keys.Cast<object>());
+                    api?.Logger.Notification("[QuickPick] Server OreKeys = [" + keys + "]");
+
+                    bool hasMeta = dict.Contains(QuickPickMetaKey);
+                    api?.Logger.Notification("[QuickPick] Server has quickpick_metadata = " + hasMeta);
+
+                    api?.Logger.Notification("[QuickPick] Server dict count = " + dict.Count);
+                }
+                else
+                {
+                    api?.Logger.Notification("[QuickPick] oreReadings is not IDictionary");
+                }
+            }
+
+            
+            
+            
             var pageCodes = GetPageCodes(__instance);
 
             string textResults;
@@ -208,6 +246,21 @@ namespace quickpick
             return false;
         }
 
+        // public static void OreMapComponentCtorPostfix(
+        //     object __instance,
+        //     int waypointIndex,
+        //     object reading,
+        //     object wpLayer,
+        //     ICoreClientAPI capi,
+        //     string filterByOreCode)
+        // {
+        //     if (__instance == null) return;
+        //     if (!IsQuickPickReading(reading)) return;
+        //     if (oreMapComponentColorField == null) return;
+        //
+        //     oreMapComponentColorField.SetValue(__instance, new Vec4f(0.68f, 0.85f, 1f, 1f));
+        // }
+
         public static void OreMapComponentCtorPostfix(
             object __instance,
             int waypointIndex,
@@ -216,13 +269,60 @@ namespace quickpick
             ICoreClientAPI capi,
             string filterByOreCode)
         {
-            if (__instance == null) return;
-            if (!IsQuickPickReading(reading)) return;
-            if (oreMapComponentColorField == null) return;
+            try
+            {
+                capi?.Logger?.Notification($"[QuickPick] Ctor fired | idx={waypointIndex}");
 
-            oreMapComponentColorField.SetValue(__instance, new Vec4f(0.68f, 0.85f, 1f, 1f));
+                if (reading == null)
+                {
+                    capi?.Logger?.Notification("[QuickPick] reading = null");
+                    return;
+                }
+
+                // Check quickpick flag
+                bool isQuick = IsQuickPickReading(reading);
+                capi?.Logger?.Notification($"[QuickPick] isQuickPick={isQuick}");
+
+                // Dump position
+                var posProp = reading.GetType().GetField("Position");
+                var pos = posProp?.GetValue(reading);
+                capi?.Logger?.Notification($"[QuickPick] Position={pos}");
+
+                // Dump ore keys
+                if (oreReadingsField != null)
+                {
+                    var dictObj = oreReadingsField.GetValue(reading);
+                    if (dictObj is IDictionary dict)
+                    {
+                        var keys = string.Join(", ", dict.Keys.Cast<object>());
+                        capi?.Logger?.Notification($"[QuickPick] OreKeys=[{keys}]");
+                    }
+                    else
+                    {
+                        capi?.Logger?.Notification("[QuickPick] OreReadings not IDictionary");
+                    }
+                }
+
+                // Only apply color if quickpick
+                if (!isQuick) return;
+
+                capi?.Logger?.Notification("[QuickPick] APPLYING COLOR");
+
+                if (oreMapComponentColorField == null)
+                {
+                    capi?.Logger?.Warning("[QuickPick] color field null!");
+                    return;
+                }
+
+                oreMapComponentColorField.SetValue(__instance, new Vec4f(0.68f, 0.85f, 1f, 1f));
+            }
+            catch (Exception ex)
+            {
+                capi?.Logger?.Error("[QuickPick] CtorPostfix error: " + ex);
+            }
         }
-
+        
+        
         private static object GetModSystemByType(ICoreAPI coreApi, Type modSystemType)
         {
             if (coreApi?.ModLoader == null) return null;
@@ -282,22 +382,26 @@ namespace quickpick
 
             return pageCodesField.GetValue(ppws) as Dictionary<string, string> ?? result;
         }
-
+        
         private static void TagAsQuickPick(object reading)
         {
-            var guid = GetReadingGuid(reading);
+            if (reading == null || oreReadingsField == null || oreReadingType == null) return;
 
-            if (!string.IsNullOrEmpty(guid) && guid.StartsWith(QuickPickGuidPrefix, StringComparison.Ordinal))
-            {
-                return;
-            }
+            var dictObj = oreReadingsField.GetValue(reading);
+            if (dictObj is not IDictionary dict) return;
 
-            if (string.IsNullOrEmpty(guid))
-            {
-                guid = Guid.NewGuid().ToString("N");
-            }
+            if (dict.Contains(QuickPickMetaKey)) return;
 
-            SetReadingGuid(reading, QuickPickGuidPrefix + guid);
+            var metaReading = Activator.CreateInstance(oreReadingType);
+            if (metaReading == null) return;
+
+            oreReadingTotalFactorField?.SetValue(metaReading, 0.0);
+            oreReadingPptField?.SetValue(metaReading, 0.0);
+
+            // Optional: make it look extra inert if this field exists in your version
+            oreReadingDepositCodeField?.SetValue(metaReading, null);
+
+            dict[QuickPickMetaKey] = metaReading;
         }
 
         private static string BuildQuickPickHumanReadable(object reading, string languageCode)
@@ -368,23 +472,12 @@ namespace quickpick
         private static bool IsQuickPickReading(object obj)
         {
             if (!IsPropickReading(obj)) return false;
+            if (oreReadingsField == null) return false;
 
-            var guid = GetReadingGuid(obj);
-            return !string.IsNullOrEmpty(guid)
-                && guid.StartsWith(QuickPickGuidPrefix, StringComparison.Ordinal);
-        }
+            var oreReadingsObj = oreReadingsField.GetValue(obj);
+            if (oreReadingsObj is not IDictionary dict) return false;
 
-        private static string GetReadingGuid(object reading)
-        {
-            return readingGuidProperty?.GetValue(reading) as string;
-        }
-
-        private static void SetReadingGuid(object reading, string guid)
-        {
-            if (readingGuidProperty?.CanWrite == true)
-            {
-                readingGuidProperty.SetValue(reading, guid);
-            }
+            return dict.Contains(QuickPickMetaKey);
         }
     }
 }

@@ -17,9 +17,10 @@ namespace quickpick
 
         internal static Type PropickType;
         internal static FieldInfo ToolModesField;
-        internal static MethodInfo PrintProbeResultsMethod;
         internal static MethodInfo GetToolModeMethod;
-
+        
+        internal static MethodInfo PrintProbeResultsMethod;
+        
         internal static IClientNetworkChannel ClientChannel;
         internal static IServerNetworkChannel ServerChannel;
 
