@@ -83,7 +83,7 @@ namespace quickpick
             ToolModesField = AccessTools.Field(PropickType, "toolModes");
             
             // Register mapping icon patches
-            OreMapLayerPatches.RegisterPatches(harmony, api, PropickType);
+            //OreMapLayerPatches.RegisterPatches(harmony, api, PropickType);
         }
 
         public override void StartClientSide(ICoreClientAPI api)
