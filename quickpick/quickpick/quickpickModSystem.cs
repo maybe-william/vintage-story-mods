@@ -77,13 +77,6 @@ namespace quickpick
             api.Logger.Notification($"[QuickPick] Patched OnLoaded");
             api.Logger.Notification($"[QuickPick] Patched held interact: {heldInteract.DeclaringType?.FullName}.{heldInteract.Name}");
             
-            // Prepare to patch mapping icon
-            PrintProbeResultsMethod = AccessTools.Method(PropickType, "PrintProbeResults");
-            GetToolModeMethod = AccessTools.Method(PropickType, "GetToolMode");
-            ToolModesField = AccessTools.Field(PropickType, "toolModes");
-            
-            // Register mapping icon patches
-            OreMapLayerPatches.RegisterPatches(harmony, api, PropickType);
         }
 
         public override void StartClientSide(ICoreClientAPI api)
