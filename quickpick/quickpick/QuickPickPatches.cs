@@ -32,7 +32,7 @@ public static class QuickPickPatches
                 quickpick.WithIcon(
                     capi,
                     capi.Gui.LoadSvgWithPadding(
-                        new AssetLocation("textures/icons/heatmap.svg"),
+                        new AssetLocation("textures/icons/timeswitch.svg"),
                         48, 48, 5,
                         ColorUtil.WhiteArgb
                     )
