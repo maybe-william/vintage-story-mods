@@ -1,14 +1,14 @@
 {
     "$schema": "https://moddbcdn.vintagestory.at/schema/modinfo.latest.json",
     "type": "Code",
-    "modid": "quickpick",
-    "name": "quickpick",
+    "modid": "notwilliamquickpick",
+    "name": "Quickpick",
     "authors": [
-        "Unknown"
+        "not_william"
     ],
-    "description": "To be added",
-    "version": "1.0.0",
+    "description": "Adds a 'Quickpick' tool mode to the prospecting pick, usable via right click while in the correct tool mode",
+    "version": "1.0.0-1.21.6",
     "dependencies": {
-        "game": "1.21.0"
+        "game": "1.21.6"
     }
 }
