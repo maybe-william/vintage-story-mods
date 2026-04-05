@@ -5,6 +5,8 @@ namespace quickpick;
 
 public static class QuickPickLogic
 {
+    private static QuickPickHarmony harmony = quickpickModSystem.Instance?.harmonySetup;
+
     public static bool IsValidQuickPickUse(
         object instance,
         ItemSlot slot,
@@ -16,8 +18,8 @@ public static class QuickPickLogic
 
         // Not even the propick? Ignore silently.
         if (instance == null) return false;
-        if (quickpickModSystem.PropickType == null) return false;
-        if (!quickpickModSystem.PropickType.IsInstanceOfType(instance)) return false;
+        if (harmony.PropickType == null) return false;
+        if (!harmony.PropickType.IsInstanceOfType(instance)) return false;
 
         // From here on, we know it's the propick, so logging is useful.
         if (slot?.Itemstack == null)
@@ -38,13 +40,13 @@ public static class QuickPickLogic
             return false;
         }
 
-        if (quickpickModSystem.GetToolModeMethod == null)
+        if (harmony.GetToolModeMethod == null)
         {
             Log("Invalid quickpick use: GetToolModeMethod was null");
             return false;
         }
 
-        if (quickpickModSystem.ToolModesField == null)
+        if (harmony.ToolModesField == null)
         {
             Log("Invalid quickpick use: ToolModesField was null");
             return false;
@@ -67,7 +69,7 @@ public static class QuickPickLogic
         int mode;
         try
         {
-            mode = (int)quickpickModSystem.GetToolModeMethod.Invoke(
+            mode = (int)harmony.GetToolModeMethod.Invoke(
                 instance,
                 new object[] { slot, byPlayer, blockSel }
             );
@@ -78,7 +80,7 @@ public static class QuickPickLogic
             return false;
         }
 
-        var modes = quickpickModSystem.ToolModesField.GetValue(instance) as SkillItem[];
+        var modes = harmony.ToolModesField.GetValue(instance) as SkillItem[];
         if (modes == null)
         {
             Log("Invalid quickpick use: toolModes was null");

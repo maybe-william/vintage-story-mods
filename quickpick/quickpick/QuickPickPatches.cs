@@ -7,15 +7,17 @@ using System.Linq;
 namespace quickpick;
 
 public static class QuickPickPatches
-    {
+{
+    private static QuickPickHarmony harmony = quickpickModSystem.Instance?.harmonySetup;
+        
         public static void OnLoadedPostfix(object __instance, ICoreAPI api)
         {
             if (__instance == null) return;
-            if (quickpickModSystem.PropickType == null) return;
-            if (!quickpickModSystem.PropickType.IsInstanceOfType(__instance)) return;
-            if (quickpickModSystem.ToolModesField == null) return;
+            if (harmony.PropickType == null) return;
+            if (!harmony.PropickType.IsInstanceOfType(__instance)) return;
+            if (harmony.ToolModesField == null) return;
 
-            var existingModes = quickpickModSystem.ToolModesField.GetValue(__instance) as SkillItem[];
+            var existingModes = harmony.ToolModesField.GetValue(__instance) as SkillItem[];
             if (existingModes == null || existingModes.Length == 0) return;
             if (existingModes.Any(m => m?.Code?.Path == "quickpick")) return;
 
@@ -42,7 +44,7 @@ public static class QuickPickPatches
             Array.Copy(existingModes, newModes, existingModes.Length);
             newModes[newModes.Length - 1] = quickpick;
 
-            quickpickModSystem.ToolModesField.SetValue(__instance, newModes);
+            harmony.ToolModesField.SetValue(__instance, newModes);
             api.Logger.Notification("[QuickPick] Added quickpick tool mode");
         }
 
