@@ -75,6 +75,10 @@ namespace quickpick
                     item,
                     new object[] { fromPlayer.Entity.World, fromPlayer, activeSlot, blockSel.Position }
                 );
+                
+                // damage the pick by 6 durability
+                item.DamageItem(fromPlayer.Entity.World, fromPlayer.Entity, activeSlot, 6);
+                activeSlot.MarkDirty();
             }
             catch (Exception ex)
             {
