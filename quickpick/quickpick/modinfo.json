@@ -7,7 +7,7 @@
         "not_william"
     ],
     "description": "Adds a 'Quickpick' tool mode to the prospecting pick, usable via right click while in the correct tool mode",
-    "version": "1.0.0-1.21.6",
+    "version": "1.0.0",
     "dependencies": {
         "game": "1.21.6"
     }
