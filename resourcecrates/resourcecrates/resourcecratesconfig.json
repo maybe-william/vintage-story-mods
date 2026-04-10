@@ -1,0 +1,20 @@
+{
+  "base_tier_rate": 180,
+  "lower_tier_factor": 10,
+  "higher_tier_factor": 100,
+  "tier_upgrade_items": ["ingot-copper", "ingot-tinbronze", "ingot-iron", "ingot-steel", "crushed-ilmenite"],
+  "tier_items": [
+    //tier 0
+    ["log-grown-oak-ud"],
+    //tier 1
+    ["plank-oak"],
+    //tier 2
+    ["nugget-nativecopper"],
+    //tier 3
+    ["nugget-cassiterite"],
+    //tier 4
+    ["ironbloom"],
+    //tier 5
+    ["ingot-blistersteel"]
+  ]
+}
