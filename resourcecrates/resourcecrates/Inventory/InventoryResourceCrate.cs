@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using Vintagestory.API.Common;
+using Vintagestory.API.Datastructures;
 using resourcecrates.Util;
 
 namespace resourcecrates.Inventory
@@ -8,7 +10,7 @@ namespace resourcecrates.Inventory
     {
         public const string InventoryClassNameValue = "resourcecrate";
 
-        private readonly ItemSlot[] slots;
+        private ItemSlot[] slots;
 
         public InventoryResourceCrate(string inventoryId, ICoreAPI api) : base(inventoryId, api)
         {
@@ -46,7 +48,7 @@ namespace resourcecrates.Inventory
             }
         }
 
-        public override string ClassName
+        public string ClassName
         {
             get
             {
@@ -96,6 +98,25 @@ namespace resourcecrates.Inventory
 
                 DebugLogger.Log("InventoryResourceCrate.this[set] END");
             }
+        }
+
+        public override void ToTreeAttributes(ITreeAttribute tree)
+        {
+            DebugLogger.Log("InventoryResourceCrate.ToTreeAttributes START");
+
+            SlotsToTreeAttributes(slots, tree);
+
+            DebugLogger.Log("InventoryResourceCrate.ToTreeAttributes END");
+        }
+
+        public override void FromTreeAttributes(ITreeAttribute tree)
+        {
+            DebugLogger.Log("InventoryResourceCrate.FromTreeAttributes START");
+
+            List<ItemSlot> modifiedSlots = new List<ItemSlot>();
+            slots = SlotsFromTreeAttributes(tree, slots, modifiedSlots);
+
+            DebugLogger.Log($"InventoryResourceCrate.FromTreeAttributes END | modifiedSlots={modifiedSlots.Count}");
         }
 
         public override object ActivateSlot(int slotId, ItemSlot sourceSlot, ref ItemStackMoveOperation op)

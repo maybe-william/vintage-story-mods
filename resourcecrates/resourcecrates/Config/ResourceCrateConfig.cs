@@ -1,24 +1,18 @@
 using System.Collections.Generic;
-using Newtonsoft.Json;
 using resourcecrates.Util;
 
 namespace resourcecrates.Config
 {
     public class ResourceCrateConfig
     {
-        [JsonProperty("base_tier_rate")]
         public double BaseTierRateMinutes { get; set; } = 180;
 
-        [JsonProperty("lower_tier_factor")]
         public double LowerTierFactor { get; set; } = 10;
 
-        [JsonProperty("higher_tier_factor")]
         public double HigherTierFactor { get; set; } = 100;
 
-        [JsonProperty("tier_upgrade_items")]
         public List<string> TierUpgradeItems { get; set; } = new();
 
-        [JsonProperty("tier_items")]
         public List<List<string>> TierItems { get; set; } = new();
 
         public ResourceCrateConfig()

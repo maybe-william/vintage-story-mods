@@ -1,5 +1,6 @@
 using Vintagestory.API.Common;
 using resourcecrates.Util;
+using Vintagestory.API.Config;
 
 namespace resourcecrates.Inventory
 {

@@ -86,9 +86,10 @@ namespace resourcecrates.Config
         {
             DebugLogger.Log($"ResourceCrateResolvedConfig.TryGetItemTier START | itemCode={itemCode}");
 
+            tier = -1;
+
             if (itemCode == null)
             {
-                tier = -1;
                 DebugLogger.Log("ResourceCrateResolvedConfig.TryGetItemTier END -> false (itemCode null)");
                 return false;
             }
@@ -103,9 +104,10 @@ namespace resourcecrates.Config
         {
             DebugLogger.Log($"ResourceCrateResolvedConfig.TryGetUpgradeTier START | itemCode={itemCode}");
 
+            tier = -1;
+
             if (itemCode == null)
             {
-                tier = -1;
                 DebugLogger.Log("ResourceCrateResolvedConfig.TryGetUpgradeTier END -> false (itemCode null)");
                 return false;
             }

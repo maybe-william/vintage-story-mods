@@ -1,6 +1,7 @@
 using System;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
+using Vintagestory.API.MathTools;
 using resourcecrates.Config;
 using resourcecrates.Domain;
 using resourcecrates.Inventory;
@@ -11,30 +12,29 @@ namespace resourcecrates.BlockEntities
 {
     public class BlockEntityResourceCrate : BlockEntity, IBlockEntityContainer
     {
-        public const string TreeStateKey = "resourceCrateState";
-        public const int TickIntervalMs = 1000;
+        private const string TreeStateKey = "resourceCrateState";
+        private const int TickIntervalMs = 1000;
 
-        private InventoryResourceCrate inventory;
-        private ResourceCrateState state;
-        private long tickListenerId = -1;
+        private InventoryResourceCrate? _inventory;
+        private ResourceCrateState _state;
+        private long _tickListenerId = -1;
 
         public BlockEntityResourceCrate()
         {
             DebugLogger.Log("BlockEntityResourceCrate.ctor START");
 
-            inventory = null;
-            state = new ResourceCrateState();
+            _state = new ResourceCrateState();
 
             DebugLogger.Log("BlockEntityResourceCrate.ctor END");
         }
 
-        public InventoryBase Inventory
+        public IInventory Inventory
         {
             get
             {
                 DebugLogger.Log("BlockEntityResourceCrate.Inventory START");
 
-                InventoryBase result = inventory;
+                var result = InventoryOrThrow();
 
                 DebugLogger.Log("BlockEntityResourceCrate.Inventory END");
                 return result;
@@ -47,7 +47,7 @@ namespace resourcecrates.BlockEntities
             {
                 DebugLogger.Log("BlockEntityResourceCrate.InventoryClassName START");
 
-                string result = InventoryResourceCrate.InventoryClassNameValue;
+                var result = InventoryResourceCrate.InventoryClassNameValue;
 
                 DebugLogger.Log($"BlockEntityResourceCrate.InventoryClassName END -> {result}");
                 return result;
@@ -60,7 +60,7 @@ namespace resourcecrates.BlockEntities
             {
                 DebugLogger.Log("BlockEntityResourceCrate.State START");
 
-                ResourceCrateState result = state;
+                var result = _state;
 
                 DebugLogger.Log("BlockEntityResourceCrate.State END");
                 return result;
@@ -73,7 +73,7 @@ namespace resourcecrates.BlockEntities
             {
                 DebugLogger.Log("BlockEntityResourceCrate.ResourceInventory START");
 
-                InventoryResourceCrate result = inventory;
+                var result = InventoryOrThrow();
 
                 DebugLogger.Log("BlockEntityResourceCrate.ResourceInventory END");
                 return result;
@@ -88,11 +88,11 @@ namespace resourcecrates.BlockEntities
 
             EnsureInventoryInitialized(api);
 
-            if (api?.Side == EnumAppSide.Server)
+            if (api.Side == EnumAppSide.Server)
             {
-                state.LastUpdateTotalHours = GetCurrentTotalHours();
-                tickListenerId = RegisterGameTickListener(OnServerTick, TickIntervalMs);
-                DebugLogger.Log($"BlockEntityResourceCrate.Initialize | Registered server tick listener id={tickListenerId}");
+                _state.LastUpdateTotalHours = GetCurrentTotalHours();
+                _tickListenerId = RegisterGameTickListener(OnServerTick, TickIntervalMs);
+                DebugLogger.Log($"BlockEntityResourceCrate.Initialize | Registered server tick listener id={_tickListenerId}");
             }
 
             MarkDirty();
@@ -100,24 +100,24 @@ namespace resourcecrates.BlockEntities
             DebugLogger.Log("BlockEntityResourceCrate.Initialize END");
         }
 
-        public override void OnBlockPlaced(ItemStack byItemStack = null)
+        public override void OnBlockPlaced(ItemStack? byItemStack)
         {
             DebugLogger.Log($"BlockEntityResourceCrate.OnBlockPlaced START | byItemStackNull={byItemStack == null}");
 
             base.OnBlockPlaced(byItemStack);
 
-            if (byItemStack != null && ResourceCrateStackAttributes.TryReadFromStack(byItemStack, out ResourceCrateState restoredState))
+            if (byItemStack != null && ResourceCrateStackAttributes.TryReadFromStack(byItemStack, out var restoredState))
             {
-                state = restoredState;
-                DebugLogger.Log($"BlockEntityResourceCrate.OnBlockPlaced | Restored state from itemstack: {state}");
+                _state = restoredState;
+                DebugLogger.Log($"BlockEntityResourceCrate.OnBlockPlaced | Restored state from itemstack: {_state}");
             }
             else
             {
-                state = new ResourceCrateState();
+                _state = new ResourceCrateState();
                 DebugLogger.Log("BlockEntityResourceCrate.OnBlockPlaced | No metadata found, using fresh default state");
             }
 
-            state.LastUpdateTotalHours = GetCurrentTotalHours();
+            _state.LastUpdateTotalHours = GetCurrentTotalHours();
             MarkDirty();
 
             DebugLogger.Log("BlockEntityResourceCrate.OnBlockPlaced END");
@@ -127,11 +127,11 @@ namespace resourcecrates.BlockEntities
         {
             DebugLogger.Log("BlockEntityResourceCrate.OnBlockRemoved START");
 
-            if (Api?.Side == EnumAppSide.Server && tickListenerId >= 0)
+            if (Api?.Side == EnumAppSide.Server && _tickListenerId >= 0)
             {
-                UnregisterGameTickListener(tickListenerId);
-                DebugLogger.Log($"BlockEntityResourceCrate.OnBlockRemoved | Unregistered tick listener id={tickListenerId}");
-                tickListenerId = -1;
+                UnregisterGameTickListener(_tickListenerId);
+                DebugLogger.Log($"BlockEntityResourceCrate.OnBlockRemoved | Unregistered tick listener id={_tickListenerId}");
+                _tickListenerId = -1;
             }
 
             base.OnBlockRemoved();
@@ -143,11 +143,11 @@ namespace resourcecrates.BlockEntities
         {
             DebugLogger.Log("BlockEntityResourceCrate.OnBlockUnloaded START");
 
-            if (Api?.Side == EnumAppSide.Server && tickListenerId >= 0)
+            if (Api?.Side == EnumAppSide.Server && _tickListenerId >= 0)
             {
-                UnregisterGameTickListener(tickListenerId);
-                DebugLogger.Log($"BlockEntityResourceCrate.OnBlockUnloaded | Unregistered tick listener id={tickListenerId}");
-                tickListenerId = -1;
+                UnregisterGameTickListener(_tickListenerId);
+                DebugLogger.Log($"BlockEntityResourceCrate.OnBlockUnloaded | Unregistered tick listener id={_tickListenerId}");
+                _tickListenerId = -1;
             }
 
             base.OnBlockUnloaded();
@@ -161,17 +161,17 @@ namespace resourcecrates.BlockEntities
 
             base.ToTreeAttributes(tree);
 
-            EnsureInventoryInitialized(Api);
-            inventory?.ToTreeAttributes(tree);
+            var inventory = InventoryOrThrow();
+            inventory.ToTreeAttributes(tree);
 
-            TreeAttribute stateTree = new TreeAttribute();
-            stateTree.SetInt(ResourceCrateStackAttributes.CrateTierKey, state.CrateTier);
-            stateTree.SetDouble(ResourceCrateStackAttributes.ProgressMinutesKey, state.ProgressMinutes);
-            stateTree.SetDouble(ResourceCrateStackAttributes.LastUpdateTotalHoursKey, state.LastUpdateTotalHours);
+            var stateTree = new TreeAttribute();
+            stateTree.SetInt(ResourceCrateStackAttributes.CrateTierKey, _state.CrateTier);
+            stateTree.SetDouble(ResourceCrateStackAttributes.ProgressMinutesKey, _state.ProgressMinutes);
+            stateTree.SetDouble(ResourceCrateStackAttributes.LastUpdateTotalHoursKey, _state.LastUpdateTotalHours);
 
-            if (state.TargetItemCode != null)
+            if (_state.TargetItemCode != null)
             {
-                stateTree.SetString(ResourceCrateStackAttributes.TargetItemCodeKey, state.TargetItemCode.ToShortString());
+                stateTree.SetString(ResourceCrateStackAttributes.TargetItemCodeKey, _state.TargetItemCode.ToShortString());
             }
 
             tree[TreeStateKey] = stateTree;
@@ -179,42 +179,62 @@ namespace resourcecrates.BlockEntities
             DebugLogger.Log("BlockEntityResourceCrate.ToTreeAttributes END");
         }
 
-        public override void FromTreeAttributes(ITreeAttribute tree, IWorldAccessor worldForResolving)
+        public override void FromTreeAttributes(ITreeAttribute tree, IWorldAccessor worldAccessForResolve)
         {
             DebugLogger.Log("BlockEntityResourceCrate.FromTreeAttributes START");
 
-            base.FromTreeAttributes(tree, worldForResolving);
+            base.FromTreeAttributes(tree, worldAccessForResolve);
 
             EnsureInventoryInitialized(Api);
+            var inventory = InventoryOrThrow();
+            inventory.FromTreeAttributes(tree);
 
-            inventory?.FromTreeAttributes(tree);
-
-            ITreeAttribute stateTree = tree?[TreeStateKey] as ITreeAttribute;
+            var stateTree = tree?[TreeStateKey] as ITreeAttribute;
             if (stateTree != null)
             {
-                state.CrateTier = stateTree.GetInt(ResourceCrateStackAttributes.CrateTierKey);
-                state.ProgressMinutes = stateTree.GetDouble(ResourceCrateStackAttributes.ProgressMinutesKey);
-                state.LastUpdateTotalHours = stateTree.GetDouble(ResourceCrateStackAttributes.LastUpdateTotalHoursKey);
+                _state.CrateTier = stateTree.GetInt(ResourceCrateStackAttributes.CrateTierKey);
+                _state.ProgressMinutes = stateTree.GetDouble(ResourceCrateStackAttributes.ProgressMinutesKey);
+                _state.LastUpdateTotalHours = stateTree.GetDouble(ResourceCrateStackAttributes.LastUpdateTotalHoursKey);
 
-                string targetCode = stateTree.GetString(ResourceCrateStackAttributes.TargetItemCodeKey, null);
-                state.TargetItemCode = string.IsNullOrWhiteSpace(targetCode) ? null : new AssetLocation(targetCode);
+                var targetCode = stateTree.GetString(ResourceCrateStackAttributes.TargetItemCodeKey, "");
+                _state.TargetItemCode = string.IsNullOrWhiteSpace(targetCode) ? null : new AssetLocation(targetCode);
 
-                DebugLogger.Log($"BlockEntityResourceCrate.FromTreeAttributes | Restored state from tree: {state}");
+                DebugLogger.Log($"BlockEntityResourceCrate.FromTreeAttributes | Restored state from tree: {_state}");
             }
             else
             {
-                state = new ResourceCrateState();
+                _state = new ResourceCrateState();
                 DebugLogger.Log("BlockEntityResourceCrate.FromTreeAttributes | No state tree found, reset to default state");
             }
 
             DebugLogger.Log("BlockEntityResourceCrate.FromTreeAttributes END");
         }
 
+        public void DropContents(Vec3d atPos)
+        {
+            DebugLogger.Log($"BlockEntityResourceCrate.DropContents START | atPos={atPos}");
+
+            var inventory = InventoryOrThrow();
+            if (inventory.OutputSlot.Itemstack != null && inventory.OutputSlot.Itemstack.StackSize > 0)
+            {
+                var stack = inventory.OutputSlot.Itemstack.Clone();
+                Api.World.SpawnItemEntity(stack, atPos);
+                inventory.OutputSlot.Itemstack = null;
+                inventory.OutputSlot.MarkDirty();
+            }
+
+            DebugLogger.Log("BlockEntityResourceCrate.DropContents END");
+        }
+
+        public void CheckInventoryClearedMidTick()
+        {
+            DebugLogger.Log("BlockEntityResourceCrate.CheckInventoryClearedMidTick START");
+            DebugLogger.Log("BlockEntityResourceCrate.CheckInventoryClearedMidTick END");
+        }
+
         public bool TryUpgrade(ItemSlot heldSlot)
         {
             DebugLogger.Log($"BlockEntityResourceCrate.TryUpgrade START | heldSlotNull={heldSlot == null}");
-
-            bool result = false;
 
             if (heldSlot?.Itemstack == null)
             {
@@ -222,41 +242,36 @@ namespace resourcecrates.BlockEntities
                 return false;
             }
 
-            ResourceCrateResolvedConfig config = ResourceCratesModSystem.GetResolvedConfigOrThrow();
+            ResourceCrateResolvedConfig config = resourcecratesModSystem.GetResolvedConfigOrThrow();
 
-            if (!ResourceCrateRules.CanUpgrade(state, heldSlot.Itemstack, config))
-            {
-                DebugLogger.Log("BlockEntityResourceCrate.TryUpgrade END -> false (rules rejected)");
-                return false;
-            }
+            int oldTier = _state.CrateTier;
+            int targetTier = ResourceCrateRules.GetUpgradeTargetTier(_state, heldSlot.Itemstack, config);
 
-            int targetTier = ResourceCrateRules.GetUpgradeTargetTier(state, heldSlot.Itemstack, config);
-            if (targetTier <= state.CrateTier)
+            if (targetTier <= oldTier)
             {
                 DebugLogger.Log("BlockEntityResourceCrate.TryUpgrade END -> false (target tier not higher)");
                 return false;
             }
 
-            state.CrateTier = targetTier;
+            bool shouldConsume = ResourceCrateRules.ShouldConsumeUpgradeItem(_state, heldSlot.Itemstack, config);
 
-            if (ResourceCrateRules.ShouldConsumeUpgradeItem(state, heldSlot.Itemstack, config))
+            _state.CrateTier = targetTier;
+
+            if (shouldConsume)
             {
                 heldSlot.TakeOut(1);
                 heldSlot.MarkDirty();
             }
 
             MarkDirty();
-            result = true;
 
-            DebugLogger.Log($"BlockEntityResourceCrate.TryUpgrade END -> {result}");
-            return result;
+            DebugLogger.Log("BlockEntityResourceCrate.TryUpgrade END -> true");
+            return true;
         }
 
         public bool TryAssignTarget(ItemSlot heldSlot)
         {
             DebugLogger.Log($"BlockEntityResourceCrate.TryAssignTarget START | heldSlotNull={heldSlot == null}");
-
-            bool result = false;
 
             if (heldSlot?.Itemstack == null)
             {
@@ -264,36 +279,33 @@ namespace resourcecrates.BlockEntities
                 return false;
             }
 
-            ResourceCrateResolvedConfig config = ResourceCratesModSystem.GetResolvedConfigOrThrow();
+            ResourceCrateResolvedConfig config = resourcecratesModSystem.GetResolvedConfigOrThrow();
 
-            if (!ResourceCrateRules.CanAssignTarget(state, heldSlot.Itemstack, config))
+            if (!ResourceCrateRules.CanAssignTarget(_state, heldSlot.Itemstack, config))
             {
                 DebugLogger.Log("BlockEntityResourceCrate.TryAssignTarget END -> false (rules rejected)");
                 return false;
             }
 
-            state.TargetItemCode = heldSlot.Itemstack.Collectible.Code;
-            state.ProgressMinutes = 0;
-            state.LastUpdateTotalHours = GetCurrentTotalHours();
+            _state.TargetItemCode = heldSlot.Itemstack.Collectible.Code;
+            _state.ProgressMinutes = 0;
+            _state.LastUpdateTotalHours = GetCurrentTotalHours();
 
-            if (ResourceCrateRules.ShouldConsumeTargetItem(state, heldSlot.Itemstack, config))
+            if (ResourceCrateRules.ShouldConsumeTargetItem(_state, heldSlot.Itemstack, config))
             {
                 heldSlot.TakeOut(1);
                 heldSlot.MarkDirty();
             }
 
             MarkDirty();
-            result = true;
 
-            DebugLogger.Log($"BlockEntityResourceCrate.TryAssignTarget END -> {result}");
-            return result;
+            DebugLogger.Log("BlockEntityResourceCrate.TryAssignTarget END -> true");
+            return true;
         }
 
         public bool TryReplaceTarget(ItemSlot heldSlot)
         {
             DebugLogger.Log($"BlockEntityResourceCrate.TryReplaceTarget START | heldSlotNull={heldSlot == null}");
-
-            bool result = false;
 
             if (heldSlot?.Itemstack == null)
             {
@@ -301,51 +313,40 @@ namespace resourcecrates.BlockEntities
                 return false;
             }
 
-            ItemStack currentStoredStack = inventory?.OutputSlot?.Itemstack;
-            ResourceCrateResolvedConfig config = ResourceCratesModSystem.GetResolvedConfigOrThrow();
+            var currentStoredStack = InventoryOrThrow().OutputSlot.Itemstack;
+            ResourceCrateResolvedConfig config = resourcecratesModSystem.GetResolvedConfigOrThrow();
 
-            if (!ResourceCrateRules.CanReplaceTarget(state, heldSlot.Itemstack, currentStoredStack, config))
+            if (!ResourceCrateRules.CanReplaceTarget(_state, heldSlot.Itemstack, currentStoredStack, config))
             {
                 DebugLogger.Log("BlockEntityResourceCrate.TryReplaceTarget END -> false (rules rejected)");
                 return false;
             }
 
-            state.TargetItemCode = heldSlot.Itemstack.Collectible.Code;
-            state.ProgressMinutes = 0;
-            state.LastUpdateTotalHours = GetCurrentTotalHours();
+            _state.TargetItemCode = heldSlot.Itemstack.Collectible.Code;
+            _state.ProgressMinutes = 0;
+            _state.LastUpdateTotalHours = GetCurrentTotalHours();
 
-            if (ResourceCrateRules.ShouldConsumeTargetItem(state, heldSlot.Itemstack, config))
+            if (ResourceCrateRules.ShouldConsumeTargetItem(_state, heldSlot.Itemstack, config))
             {
                 heldSlot.TakeOut(1);
                 heldSlot.MarkDirty();
             }
 
             MarkDirty();
-            result = true;
 
-            DebugLogger.Log($"BlockEntityResourceCrate.TryReplaceTarget END -> {result}");
-            return result;
-        }
-
-        public bool CanPlayerTake()
-        {
-            DebugLogger.Log("BlockEntityResourceCrate.CanPlayerTake START");
-
-            bool result = inventory != null && inventory.OutputSlot != null;
-
-            DebugLogger.Log($"BlockEntityResourceCrate.CanPlayerTake END -> {result}");
-            return result;
+            DebugLogger.Log("BlockEntityResourceCrate.TryReplaceTarget END -> true");
+            return true;
         }
 
         public ItemStack CreateDroppedStack()
         {
             DebugLogger.Log("BlockEntityResourceCrate.CreateDroppedStack START");
 
-            ItemStack result = new ItemStack(Block);
+            var result = new ItemStack(Block);
 
-            if (ResourceCrateRules.ShouldPreserveMetadata(state))
+            if (ResourceCrateRules.ShouldPreserveMetadata(_state))
             {
-                ResourceCrateStackAttributes.WriteToStack(result, state);
+                ResourceCrateStackAttributes.WriteToStack(result, _state);
             }
             else
             {
@@ -354,17 +355,6 @@ namespace resourcecrates.BlockEntities
 
             DebugLogger.Log("BlockEntityResourceCrate.CreateDroppedStack END");
             return result;
-        }
-
-        public void ClearTarget()
-        {
-            DebugLogger.Log("BlockEntityResourceCrate.ClearTarget START");
-
-            state.ClearTarget();
-            state.LastUpdateTotalHours = GetCurrentTotalHours();
-            MarkDirty();
-
-            DebugLogger.Log("BlockEntityResourceCrate.ClearTarget END");
         }
 
         private void OnServerTick(float dt)
@@ -377,58 +367,53 @@ namespace resourcecrates.BlockEntities
                 return;
             }
 
-            EnsureInventoryInitialized(Api);
+            var inventory = InventoryOrThrow();
+            ResourceCrateResolvedConfig config = resourcecratesModSystem.GetResolvedConfigOrThrow();
 
-            ResourceCrateResolvedConfig config = ResourceCratesModSystem.GetResolvedConfigOrThrow();
-
-            if (!ResourceCrateRules.CanGenerate(state, config))
+            if (!ResourceCrateRules.CanGenerate(_state, config))
             {
-                state.LastUpdateTotalHours = GetCurrentTotalHours();
+                _state.LastUpdateTotalHours = GetCurrentTotalHours();
                 DebugLogger.Log("BlockEntityResourceCrate.OnServerTick END (cannot generate)");
                 return;
             }
 
-            CollectibleObject collectible = ResolveTargetCollectible();
+            var collectible = ResolveTargetCollectible();
             if (collectible == null)
             {
-                state.LastUpdateTotalHours = GetCurrentTotalHours();
+                _state.LastUpdateTotalHours = GetCurrentTotalHours();
                 DebugLogger.Warn("BlockEntityResourceCrate.OnServerTick END (target collectible unresolved)");
                 return;
             }
 
-            ItemStack probeStack = new ItemStack(collectible, 1);
+            var probeStack = new ItemStack(collectible, 1);
             if (!inventory.OutputSlot.CanAcceptGenerated(probeStack))
             {
-                state.LastUpdateTotalHours = GetCurrentTotalHours();
+                _state.LastUpdateTotalHours = GetCurrentTotalHours();
                 DebugLogger.Log("BlockEntityResourceCrate.OnServerTick END (slot cannot accept generated item)");
                 return;
             }
 
             double currentTotalHours = GetCurrentTotalHours();
-            double elapsedHours = currentTotalHours - state.LastUpdateTotalHours;
-            if (elapsedHours < 0)
-            {
-                elapsedHours = 0;
-            }
+            double elapsedHours = currentTotalHours - _state.LastUpdateTotalHours;
+            if (elapsedHours < 0) elapsedHours = 0;
 
             double elapsedMinutes = ResourceCrateTierMath.HoursToMinutes(elapsedHours);
-            double minutesPerItem = ResourceCrateRules.GetMinutesPerItem(state, config);
+            double minutesPerItem = ResourceCrateRules.GetMinutesPerItem(_state, config);
 
             if (minutesPerItem <= 0)
             {
-                state.LastUpdateTotalHours = currentTotalHours;
+                _state.LastUpdateTotalHours = currentTotalHours;
                 DebugLogger.Log("BlockEntityResourceCrate.OnServerTick END (minutesPerItem invalid)");
                 return;
             }
 
-            var production = ResourceCrateTierMath.ComputeProduction(state.ProgressMinutes, minutesPerItem, elapsedMinutes);
-            int itemsToProduce = production.items;
-            double remainingProgress = production.remainingProgress;
+            var (itemsToProduce, remainingProgress) =
+                ResourceCrateTierMath.ComputeProduction(_state.ProgressMinutes, minutesPerItem, elapsedMinutes);
 
             if (itemsToProduce <= 0)
             {
-                state.ProgressMinutes = remainingProgress;
-                state.LastUpdateTotalHours = currentTotalHours;
+                _state.ProgressMinutes = remainingProgress;
+                _state.LastUpdateTotalHours = currentTotalHours;
                 MarkDirty();
                 DebugLogger.Log("BlockEntityResourceCrate.OnServerTick END (not enough progress for item)");
                 return;
@@ -437,75 +422,85 @@ namespace resourcecrates.BlockEntities
             int remainingRoom = inventory.OutputSlot.GetRemainingRoomFor(probeStack);
             if (remainingRoom <= 0)
             {
-                state.LastUpdateTotalHours = currentTotalHours;
+                _state.LastUpdateTotalHours = currentTotalHours;
                 DebugLogger.Log("BlockEntityResourceCrate.OnServerTick END (no room after room check)");
                 return;
             }
 
             int actualToProduce = itemsToProduce <= remainingRoom ? itemsToProduce : remainingRoom;
 
-            ItemStack generatedStack = new ItemStack(collectible, actualToProduce);
+            var generatedStack = new ItemStack(collectible, actualToProduce);
             int inserted = inventory.OutputSlot.TryPutGenerated(generatedStack);
 
             int uninserted = itemsToProduce - inserted;
-            state.ProgressMinutes = remainingProgress + (uninserted * minutesPerItem);
-            state.LastUpdateTotalHours = currentTotalHours;
+            _state.ProgressMinutes = remainingProgress + (uninserted * minutesPerItem);
+            _state.LastUpdateTotalHours = currentTotalHours;
 
             if (inserted > 0)
             {
                 MarkDirty();
             }
 
-            DebugLogger.Log($"BlockEntityResourceCrate.OnServerTick END | inserted={inserted}, uninserted={uninserted}, state={state}");
+            DebugLogger.Log($"BlockEntityResourceCrate.OnServerTick END | inserted={inserted}, uninserted={uninserted}, state={_state}");
         }
 
-        private void EnsureInventoryInitialized(ICoreAPI api)
+        private void EnsureInventoryInitialized(ICoreAPI? api)
         {
             DebugLogger.Log("BlockEntityResourceCrate.EnsureInventoryInitialized START");
 
-            if (inventory == null)
+            if (_inventory == null)
             {
-                string inventoryId = $"resourcecrate-{Pos?.X ?? 0}/{Pos?.Y ?? 0}/{Pos?.Z ?? 0}";
-                inventory = new InventoryResourceCrate(inventoryId, api);
+                if (api == null)
+                {
+                    DebugLogger.Error("BlockEntityResourceCrate.EnsureInventoryInitialized | api was null");
+                    throw new InvalidOperationException("Cannot initialize inventory with null api");
+                }
+
+                string inventoryId = $"resourcecrate-{Pos.X}/{Pos.Y}/{Pos.Z}";
+                _inventory = new InventoryResourceCrate(inventoryId, api);
                 DebugLogger.Log($"BlockEntityResourceCrate.EnsureInventoryInitialized | Created inventory id={inventoryId}");
             }
 
             DebugLogger.Log("BlockEntityResourceCrate.EnsureInventoryInitialized END");
         }
 
+        private InventoryResourceCrate InventoryOrThrow()
+        {
+            DebugLogger.Log("BlockEntityResourceCrate.InventoryOrThrow START");
+
+            if (_inventory == null)
+            {
+                DebugLogger.Error("BlockEntityResourceCrate.InventoryOrThrow | _inventory was null");
+                throw new InvalidOperationException("Inventory was not initialized");
+            }
+
+            DebugLogger.Log("BlockEntityResourceCrate.InventoryOrThrow END");
+            return _inventory;
+        }
+
         private double GetCurrentTotalHours()
         {
             DebugLogger.Log("BlockEntityResourceCrate.GetCurrentTotalHours START");
 
-            double result = 0;
-
-            if (Api?.World?.Calendar != null)
-            {
-                result = Api.World.Calendar.TotalHours;
-            }
+            double result = Api?.World?.Calendar?.TotalHours ?? 0;
 
             DebugLogger.Log($"BlockEntityResourceCrate.GetCurrentTotalHours END -> {result}");
             return result;
         }
 
-        private CollectibleObject ResolveTargetCollectible()
+        private CollectibleObject? ResolveTargetCollectible()
         {
             DebugLogger.Log("BlockEntityResourceCrate.ResolveTargetCollectible START");
 
-            CollectibleObject result = null;
-
-            if (Api?.World == null || state?.TargetItemCode == null)
+            if (Api?.World == null || _state.TargetItemCode == null)
             {
                 DebugLogger.Log("BlockEntityResourceCrate.ResolveTargetCollectible END -> null (Api/world/target missing)");
                 return null;
             }
 
-            result = Api.World.GetItem(state.TargetItemCode);
-            if (result == null)
-            {
-                result = Api.World.GetBlock(state.TargetItemCode);
-            }
-
+            var result = (CollectibleObject?)Api.World.GetItem(_state.TargetItemCode)
+                         ?? Api.World.GetBlock(_state.TargetItemCode);
+            
             DebugLogger.Log($"BlockEntityResourceCrate.ResolveTargetCollectible END -> {(result == null ? "null" : result.Code.ToString())}");
             return result;
         }
