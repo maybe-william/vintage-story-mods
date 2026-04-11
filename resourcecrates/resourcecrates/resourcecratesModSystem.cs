@@ -1,5 +1,7 @@
 ﻿using System;
 using Vintagestory.API.Common;
+using Vintagestory.API.Client;
+using Vintagestory.API.Server;
 using resourcecrates.Config;
 using resourcecrates.BlockEntities;
 using resourcecrates.Util;
@@ -16,7 +18,7 @@ namespace resourcecrates
         private ICoreAPI? api;
         private ResourceCrateConfigLoader? configLoader;
 
-        public ResourceCratesModSystem()
+        public resourcecratesModSystem()
         {
             DebugLogger.Log("ResourceCratesModSystem.ctor START");
 
