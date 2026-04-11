@@ -313,13 +313,27 @@ namespace resourcecrates.BlockEntities
                 return false;
             }
 
-            var currentStoredStack = InventoryOrThrow().OutputSlot.Itemstack;
+            var inventory = InventoryOrThrow();
+            var currentStoredStack = inventory.OutputSlot.Itemstack;
             ResourceCrateResolvedConfig config = resourcecratesModSystem.GetResolvedConfigOrThrow();
 
             if (!ResourceCrateRules.CanReplaceTarget(_state, heldSlot.Itemstack, currentStoredStack, config))
             {
                 DebugLogger.Log("BlockEntityResourceCrate.TryReplaceTarget END -> false (rules rejected)");
                 return false;
+            }
+
+            if (currentStoredStack != null && currentStoredStack.StackSize > 0)
+            {
+                var dropPos = Pos.ToVec3d().Add(0.5, 0.5, 0.5);
+                var droppedStack = currentStoredStack.Clone();
+
+                Api.World.SpawnItemEntity(droppedStack, dropPos);
+
+                inventory.OutputSlot.Itemstack = null;
+                inventory.OutputSlot.MarkDirty();
+
+                DebugLogger.Log($"BlockEntityResourceCrate.TryReplaceTarget | Dropped previous contents: {droppedStack.Collectible.Code} x{droppedStack.StackSize}");
             }
 
             _state.TargetItemCode = heldSlot.Itemstack.Collectible.Code;

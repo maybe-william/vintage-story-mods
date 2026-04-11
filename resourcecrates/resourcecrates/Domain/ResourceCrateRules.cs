@@ -78,12 +78,7 @@ namespace resourcecrates.Domain
         {
             DebugLogger.Log($"ResourceCrateRules.CanRetarget START | state={state}, currentStoredStack={(currentStoredStack == null ? "null" : currentStoredStack.Collectible?.Code?.ToString() ?? "null")}");
 
-            bool result = false;
-
-            if (state != null)
-            {
-                result = currentStoredStack == null || currentStoredStack.StackSize <= 0;
-            }
+            bool result = state != null;
 
             DebugLogger.Log($"ResourceCrateRules.CanRetarget END -> {result}");
             return result;
