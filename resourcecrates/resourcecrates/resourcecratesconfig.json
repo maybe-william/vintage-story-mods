@@ -1,9 +1,9 @@
 {
-  "base_tier_rate": 180,
-  "lower_tier_factor": 10,
-  "higher_tier_factor": 100,
-  "tier_upgrade_items": ["game:ingot-copper", "game:ingot-tinbronze", "game:ingot-iron", "game:ingot-steel", "game:crushed-ilmenite"],
-  "tier_items": [
+  "baseTierRate": 180,
+  "lowerTierFactor": 10,
+  "higherTierFactor": 100,
+  "tierUpgradeItems": ["game:ingot-copper", "game:ingot-tinbronze", "game:ingot-iron", "game:ingot-steel", "game:crushed-ilmenite"],
+  "tierItems": [
     //tier 0
     ["game:log-grown-oak-ud"],
     //tier 1
