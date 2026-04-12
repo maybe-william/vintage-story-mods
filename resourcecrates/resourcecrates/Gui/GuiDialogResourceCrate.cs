@@ -30,8 +30,8 @@ namespace resourcecrates.Gui
         {
             DebugLogger.Log("GuiDialogResourceCrate.SetupDialog START");
 
-            ElementBounds dialogBounds = ElementBounds.Fixed(0, 0, 120, 90)
-                .WithAlignment(EnumDialogArea.CenterMiddle);
+            ElementBounds dialogBounds = ElementBounds.Fixed(0, 0, 240, 120)
+                .WithAlignment(EnumDialogArea.RightMiddle);
 
             ElementBounds bgBounds = dialogBounds.FlatCopy();
 
@@ -39,7 +39,7 @@ namespace resourcecrates.Gui
 
             ElementBounds contentBounds = ElementBounds.Fixed(
                 GuiStyle.ElementToDialogPadding,
-                30,
+                50,
                 80,
                 50
             );

@@ -4,7 +4,7 @@
   "entityClass": "notwilliamresourcecrates.BEResourceCrate",
   "drawtype": "cube",
   "textures": {
-    "all": { "base": "game:block/stone/altar/front" }
+    "all": { "base": "game:block/wood/crate/aged-sides" }
   },
   "creativeinventory": {
     "general": ["*"]
