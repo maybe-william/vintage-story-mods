@@ -4,14 +4,16 @@ using Vintagestory.API.Client;
 using Vintagestory.API.Server;
 using resourcecrates.Config;
 using resourcecrates.BlockEntities;
+using resourcecrates.Blocks;
 using resourcecrates.Util;
 
 namespace resourcecrates
 {
     public class resourcecratesModSystem : ModSystem
     {
-        public const string ModId = "resourcecrates";
+        public const string ModId = "notwilliamresourcecrates";
         public const string BlockEntityClassName = "BEResourceCrate";
+        public const string BlockClassName = "ResourceCrate";
 
         public static ResourceCrateResolvedConfig? ResolvedConfig { get; private set; }
 
@@ -47,7 +49,10 @@ namespace resourcecrates
             configLoader = new ResourceCrateConfigLoader(api);
             DebugLogger.Log("ResourceCratesModSystem.Start | ResourceCrateConfigLoader created");
 
-            api.RegisterBlockEntityClass(BlockEntityClassName, typeof(BlockEntityResourceCrate));
+            api.RegisterBlockClass(ModId + "." + BlockClassName, typeof(BlockResourceCrate));
+            DebugLogger.Log($"ResourceCratesModSystem.Start | Registered block class: {ModId}.resourcecrate");
+
+            api.RegisterBlockEntityClass(ModId + "." + BlockEntityClassName, typeof(BlockEntityResourceCrate));
             DebugLogger.Log($"ResourceCratesModSystem.Start | Registered block entity class: {BlockEntityClassName}");
 
             DebugLogger.Log("ResourceCratesModSystem.Start END");

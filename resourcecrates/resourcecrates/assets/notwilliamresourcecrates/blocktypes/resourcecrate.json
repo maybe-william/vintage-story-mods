@@ -1,0 +1,12 @@
+{
+  "code": "resourcecrate",
+  "class": "notwilliamresourcecrates.ResourceCrate",
+  "entityClass": "notwilliamresourcecrates.BEResourceCrate",
+  "drawtype": "cube",
+  "textures": {
+    "all": { "base": "game:block/stone/altar/front" }
+  },
+  "creativeinventory": {
+    "general": ["*"]
+  }
+}

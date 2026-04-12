@@ -7,6 +7,8 @@ using resourcecrates.Domain;
 using resourcecrates.Inventory;
 using resourcecrates.Serialization;
 using resourcecrates.Util;
+using Vintagestory.API.Client;
+using resourcecrates.Gui;
 
 namespace resourcecrates.BlockEntities
 {
@@ -18,6 +20,7 @@ namespace resourcecrates.BlockEntities
         private InventoryResourceCrate? _inventory;
         private ResourceCrateState _state;
         private long _tickListenerId = -1;
+        private GuiDialogResourceCrate? _clientDialog;
 
         public BlockEntityResourceCrate()
         {
@@ -127,6 +130,8 @@ namespace resourcecrates.BlockEntities
         {
             DebugLogger.Log("BlockEntityResourceCrate.OnBlockRemoved START");
 
+            TryCloseDialog();
+
             if (Api?.Side == EnumAppSide.Server && _tickListenerId >= 0)
             {
                 UnregisterGameTickListener(_tickListenerId);
@@ -142,6 +147,8 @@ namespace resourcecrates.BlockEntities
         public override void OnBlockUnloaded()
         {
             DebugLogger.Log("BlockEntityResourceCrate.OnBlockUnloaded START");
+
+            TryCloseDialog();
 
             if (Api?.Side == EnumAppSide.Server && _tickListenerId >= 0)
             {
@@ -185,9 +192,12 @@ namespace resourcecrates.BlockEntities
 
             base.FromTreeAttributes(tree, worldAccessForResolve);
 
-            EnsureInventoryInitialized(Api);
-            var inventory = InventoryOrThrow();
-            inventory.FromTreeAttributes(tree);
+            EnsureInventoryInitialized(worldAccessForResolve?.Api);
+
+            if (_inventory != null)
+            {
+                _inventory.FromTreeAttributes(tree);
+            }
 
             var stateTree = tree?[TreeStateKey] as ITreeAttribute;
             if (stateTree != null)
@@ -196,7 +206,7 @@ namespace resourcecrates.BlockEntities
                 _state.ProgressMinutes = stateTree.GetDouble(ResourceCrateStackAttributes.ProgressMinutesKey);
                 _state.LastUpdateTotalHours = stateTree.GetDouble(ResourceCrateStackAttributes.LastUpdateTotalHoursKey);
 
-                var targetCode = stateTree.GetString(ResourceCrateStackAttributes.TargetItemCodeKey, "");
+                string targetCode = stateTree.GetString(ResourceCrateStackAttributes.TargetItemCodeKey, "");
                 _state.TargetItemCode = string.IsNullOrWhiteSpace(targetCode) ? null : new AssetLocation(targetCode);
 
                 DebugLogger.Log($"BlockEntityResourceCrate.FromTreeAttributes | Restored state from tree: {_state}");
@@ -466,8 +476,8 @@ namespace resourcecrates.BlockEntities
             {
                 if (api == null)
                 {
-                    DebugLogger.Error("BlockEntityResourceCrate.EnsureInventoryInitialized | api was null");
-                    throw new InvalidOperationException("Cannot initialize inventory with null api");
+                    DebugLogger.Log("BlockEntityResourceCrate.EnsureInventoryInitialized END (api null, inventory not created)");
+                    return;
                 }
 
                 string inventoryId = $"resourcecrate-{Pos.X}/{Pos.Y}/{Pos.Z}";
@@ -517,6 +527,56 @@ namespace resourcecrates.BlockEntities
             
             DebugLogger.Log($"BlockEntityResourceCrate.ResolveTargetCollectible END -> {(result == null ? "null" : result.Code.ToString())}");
             return result;
+        }
+        
+        public bool TryOpenDialog(IPlayer byPlayer)
+        {
+            DebugLogger.Log($"BlockEntityResourceCrate.TryOpenDialog START | byPlayerNull={byPlayer == null}");
+
+            if (byPlayer == null)
+            {
+                DebugLogger.Log("BlockEntityResourceCrate.TryOpenDialog END -> false (player null)");
+                return false;
+            }
+
+            if (Api == null || Api.Side != EnumAppSide.Client)
+            {
+                DebugLogger.Log("BlockEntityResourceCrate.TryOpenDialog END -> false (not client side)");
+                return false;
+            }
+
+            if (Api is not ICoreClientAPI capi)
+            {
+                DebugLogger.Log("BlockEntityResourceCrate.TryOpenDialog END -> false (Api not client api)");
+                return false;
+            }
+
+            var inventory = InventoryOrThrow();
+
+            if (_clientDialog == null)
+            {
+                _clientDialog = new GuiDialogResourceCrate("Resource Crate", inventory, Pos, capi);
+            }
+
+            if (!_clientDialog.IsOpened())
+            {
+                _clientDialog.TryOpen();
+            }
+
+            DebugLogger.Log("BlockEntityResourceCrate.TryOpenDialog END -> true");
+            return true;
+        }
+
+        public void TryCloseDialog()
+        {
+            DebugLogger.Log("BlockEntityResourceCrate.TryCloseDialog START");
+
+            if (_clientDialog != null && _clientDialog.IsOpened())
+            {
+                _clientDialog.TryClose();
+            }
+
+            DebugLogger.Log("BlockEntityResourceCrate.TryCloseDialog END");
         }
     }
 }

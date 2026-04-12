@@ -59,12 +59,37 @@ namespace resourcecrates.Blocks
                 return true;
             }
 
+            if (activeHotbarSlot?.Itemstack == null)
+            {
+                if (TryHandleOpenDialog(byPlayer, be))
+                {
+                    DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> true (dialog opened)");
+                    return true;
+                }
+            }
+            
             result = base.OnBlockInteractStart(world, byPlayer, blockSel);
 
             DebugLogger.Log($"BlockResourceCrate.OnBlockInteractStart END -> {result} (base interaction)");
             return result;
         }
 
+        private bool TryHandleOpenDialog(IPlayer byPlayer, BlockEntityResourceCrate be)
+        {
+            DebugLogger.Log($"BlockResourceCrate.TryHandleOpenDialog START | byPlayerNull={byPlayer == null}, beNull={be == null}");
+
+            if (byPlayer == null || be == null)
+            {
+                DebugLogger.Log("BlockResourceCrate.TryHandleOpenDialog END -> false (missing player/be)");
+                return false;
+            }
+
+            bool result = be.TryOpenDialog(byPlayer);
+
+            DebugLogger.Log($"BlockResourceCrate.TryHandleOpenDialog END -> {result}");
+            return result;
+        }
+        
         public override ItemStack OnPickBlock(IWorldAccessor world, BlockPos pos)
         {
             DebugLogger.Log($"BlockResourceCrate.OnPickBlock START | pos={pos}");
