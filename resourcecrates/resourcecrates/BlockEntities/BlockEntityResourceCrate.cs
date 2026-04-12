@@ -576,6 +576,11 @@ namespace resourcecrates.BlockEntities
                 _clientDialog.TryClose();
             }
 
+            if (Api is ICoreClientAPI capi)
+            {
+                capi.World.Player?.InventoryManager?.CloseInventory(ResourceInventory);
+            }
+
             DebugLogger.Log("BlockEntityResourceCrate.TryCloseDialog END");
         }
     }

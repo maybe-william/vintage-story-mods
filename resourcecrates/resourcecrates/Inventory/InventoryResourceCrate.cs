@@ -121,11 +121,71 @@ namespace resourcecrates.Inventory
 
         public override object ActivateSlot(int slotId, ItemSlot sourceSlot, ref ItemStackMoveOperation op)
         {
-            DebugLogger.Log($"InventoryResourceCrate.ActivateSlot START | slotId={slotId}, sourceSlotNull={sourceSlot == null}, opNull={op == null}");
+            string beforeTarget;
+            if (slotId >= 0 && slotId < slots.Length && slots[slotId]?.Itemstack != null)
+            {
+                ItemStack stack = slots[slotId].Itemstack;
+                beforeTarget = stack.Collectible.Code + " x" + stack.StackSize;
+            }
+            else
+            {
+                beforeTarget = "empty";
+            }
+
+            string beforeSource;
+            if (sourceSlot?.Itemstack != null)
+            {
+                ItemStack stack = sourceSlot.Itemstack;
+                beforeSource = stack.Collectible.Code + " x" + stack.StackSize;
+            }
+            else
+            {
+                beforeSource = "empty";
+            }
+
+            bool sourceSlotNull = sourceSlot == null;
+            bool opNull = op == null;
+
+            DebugLogger.Log(
+                $"InventoryResourceCrate.ActivateSlot START | " +
+                $"slotId={slotId}, " +
+                $"sourceSlotNull={sourceSlotNull}, " +
+                $"opNull={opNull}, " +
+                $"beforeTarget={beforeTarget}, " +
+                $"beforeSource={beforeSource}"
+            );
 
             object result = base.ActivateSlot(slotId, sourceSlot, ref op);
 
-            DebugLogger.Log("InventoryResourceCrate.ActivateSlot END");
+            string afterTarget;
+            if (slotId >= 0 && slotId < slots.Length && slots[slotId]?.Itemstack != null)
+            {
+                ItemStack stack = slots[slotId].Itemstack;
+                afterTarget = stack.Collectible.Code + " x" + stack.StackSize;
+            }
+            else
+            {
+                afterTarget = "empty";
+            }
+
+            string afterSource;
+            if (sourceSlot?.Itemstack != null)
+            {
+                ItemStack stack = sourceSlot.Itemstack;
+                afterSource = stack.Collectible.Code + " x" + stack.StackSize;
+            }
+            else
+            {
+                afterSource = "empty";
+            }
+
+            DebugLogger.Log(
+                $"InventoryResourceCrate.ActivateSlot END | " +
+                $"slotId={slotId}, " +
+                $"afterTarget={afterTarget}, " +
+                $"afterSource={afterSource}"
+            );
+
             return result;
         }
 

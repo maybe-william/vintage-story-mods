@@ -82,5 +82,20 @@ namespace resourcecrates.Gui
                 return null;
             }
         }
+        
+        public override bool TryClose()
+        {
+            DebugLogger.Log("GuiDialogResourceCrate.TryClose START");
+
+            bool result = base.TryClose();
+
+            if (result)
+            {
+                capi.World.Player?.InventoryManager?.CloseInventory(_inventory);
+            }
+
+            DebugLogger.Log($"GuiDialogResourceCrate.TryClose END -> {result}");
+            return result;
+        }
     }
 }

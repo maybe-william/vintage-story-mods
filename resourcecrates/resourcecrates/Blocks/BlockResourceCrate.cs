@@ -61,9 +61,17 @@ namespace resourcecrates.Blocks
 
             if (activeHotbarSlot?.Itemstack == null)
             {
-                if (TryHandleOpenDialog(byPlayer, be))
+                if (world.Side == EnumAppSide.Server)
                 {
-                    DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> true (dialog opened)");
+                    byPlayer.InventoryManager?.OpenInventory(be.Inventory);
+                    DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> true (dialog opened)(server)");
+                    return true;
+                }
+
+                if (world.Side == EnumAppSide.Client)
+                {
+                    TryHandleOpenDialog(byPlayer, be);
+                    DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> true (dialog opened)(client)");
                     return true;
                 }
             }
