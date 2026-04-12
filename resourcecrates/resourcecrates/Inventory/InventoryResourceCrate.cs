@@ -17,18 +17,18 @@ namespace resourcecrates.Inventory
             DebugLogger.Log($"InventoryResourceCrate.ctor START | inventoryId={inventoryId}");
 
             slots = new ItemSlot[1];
-            slots[0] = new ItemSlotResourceCrateOutput(this);
+            slots[0] = new ItemSlot(this);
 
             DebugLogger.Log("InventoryResourceCrate.ctor END");
         }
 
-        public ItemSlotResourceCrateOutput OutputSlot
+        public ItemSlot OutputSlot
         {
             get
             {
                 DebugLogger.Log("InventoryResourceCrate.OutputSlot START");
 
-                ItemSlotResourceCrateOutput result = (ItemSlotResourceCrateOutput)slots[0];
+                ItemSlot result = slots[0];
 
                 DebugLogger.Log("InventoryResourceCrate.OutputSlot END");
                 return result;
@@ -121,6 +121,10 @@ namespace resourcecrates.Inventory
 
         public override object ActivateSlot(int slotId, ItemSlot sourceSlot, ref ItemStackMoveOperation op)
         {
+            string side = Api?.Side.ToString() ?? "nullside";
+            string invId = InventoryID ?? "nullid";
+            int invHash = GetHashCode();
+
             string beforeTarget;
             if (slotId >= 0 && slotId < slots.Length && slots[slotId]?.Itemstack != null)
             {
@@ -143,17 +147,18 @@ namespace resourcecrates.Inventory
                 beforeSource = "empty";
             }
 
-            bool sourceSlotNull = sourceSlot == null;
-            bool opNull = op == null;
-
             DebugLogger.Log(
                 $"InventoryResourceCrate.ActivateSlot START | " +
-                $"slotId={slotId}, " +
-                $"sourceSlotNull={sourceSlotNull}, " +
-                $"opNull={opNull}, " +
-                $"beforeTarget={beforeTarget}, " +
-                $"beforeSource={beforeSource}"
+                $"side={side}, invId={invId}, invHash={invHash}, " +
+                $"slotId={slotId}, sourceSlotNull={sourceSlot == null}, opNull={op == null}, " +
+                $"beforeTarget={beforeTarget}, beforeSource={beforeSource}"
             );
+
+            if (slotId == 0 && sourceSlot?.Itemstack != null)
+            {
+                DebugLogger.Log("InventoryResourceCrate.ActivateSlot END -> null (blocked player insertion into output slot)");
+                return null;
+            }
 
             object result = base.ActivateSlot(slotId, sourceSlot, ref op);
 
@@ -181,9 +186,8 @@ namespace resourcecrates.Inventory
 
             DebugLogger.Log(
                 $"InventoryResourceCrate.ActivateSlot END | " +
-                $"slotId={slotId}, " +
-                $"afterTarget={afterTarget}, " +
-                $"afterSource={afterSource}"
+                $"side={side}, invId={invId}, invHash={invHash}, " +
+                $"slotId={slotId}, afterTarget={afterTarget}, afterSource={afterSource}"
             );
 
             return result;
@@ -202,6 +206,12 @@ namespace resourcecrates.Inventory
         {
             DebugLogger.Log($"InventoryResourceCrate.GetSuitability START | sourceSlotNull={sourceSlot == null}, targetSlotNull={targetSlot == null}, isMerge={isMerge}");
 
+            if (targetSlot == slots[0] && sourceSlot?.Itemstack != null)
+            {
+                DebugLogger.Log("InventoryResourceCrate.GetSuitability END -> 0 (blocked output slot insertion)");
+                return 0f;
+            }
+
             float result = base.GetSuitability(sourceSlot, targetSlot, isMerge);
 
             DebugLogger.Log($"InventoryResourceCrate.GetSuitability END -> {result}");
@@ -212,7 +222,7 @@ namespace resourcecrates.Inventory
         {
             DebugLogger.Log($"InventoryResourceCrate.NewSlot START | slotId={slotId}");
 
-            ItemSlot result = new ItemSlotResourceCrateOutput(this);
+            ItemSlot result = new ItemSlot(this);
 
             DebugLogger.Log("InventoryResourceCrate.NewSlot END");
             return result;
@@ -220,7 +230,25 @@ namespace resourcecrates.Inventory
 
         public override void OnItemSlotModified(ItemSlot slot)
         {
-            DebugLogger.Log($"InventoryResourceCrate.OnItemSlotModified START | slotNull={slot == null}");
+            string slotState;
+
+            if (slot?.Itemstack != null)
+            {
+                ItemStack stack = slot.Itemstack;
+                slotState = stack.Collectible.Code + " x" + stack.StackSize;
+            }
+            else
+            {
+                slotState = "empty";
+            }
+
+            bool slotNull = slot == null;
+
+            DebugLogger.Log(
+                $"InventoryResourceCrate.OnItemSlotModified START | " +
+                $"slotNull={slotNull}, " +
+                $"slotState={slotState}"
+            );
 
             base.OnItemSlotModified(slot);
 

@@ -103,6 +103,25 @@ namespace resourcecrates.BlockEntities
             DebugLogger.Log("BlockEntityResourceCrate.Initialize END");
         }
 
+        public override void OnReceivedClientPacket(IPlayer fromPlayer, int packetid, byte[] data)
+        {
+            DebugLogger.Log($"BlockEntityResourceCrate.OnReceivedClientPacket START | packetid={packetid}, fromPlayerNull={fromPlayer == null}");
+
+            base.OnReceivedClientPacket(fromPlayer, packetid, data);
+
+            if (_inventory == null)
+            {
+                DebugLogger.Log("BlockEntityResourceCrate.OnReceivedClientPacket END (_inventory null)");
+                return;
+            }
+
+            _inventory.InvNetworkUtil?.HandleClientPacket(fromPlayer, packetid, data);
+
+            MarkDirty();
+
+            DebugLogger.Log("BlockEntityResourceCrate.OnReceivedClientPacket END");
+        }
+        
         public override void OnBlockPlaced(ItemStack? byItemStack)
         {
             DebugLogger.Log($"BlockEntityResourceCrate.OnBlockPlaced START | byItemStackNull={byItemStack == null}");
@@ -409,13 +428,7 @@ namespace resourcecrates.BlockEntities
                 return;
             }
 
-            var probeStack = new ItemStack(collectible, 1);
-            if (!inventory.OutputSlot.CanAcceptGenerated(probeStack))
-            {
-                _state.LastUpdateTotalHours = GetCurrentTotalHours();
-                DebugLogger.Log("BlockEntityResourceCrate.OnServerTick END (slot cannot accept generated item)");
-                return;
-            }
+            
 
             double currentTotalHours = GetCurrentTotalHours();
             double elapsedHours = currentTotalHours - _state.LastUpdateTotalHours;
@@ -442,30 +455,93 @@ namespace resourcecrates.BlockEntities
                 DebugLogger.Log("BlockEntityResourceCrate.OnServerTick END (not enough progress for item)");
                 return;
             }
+            
+            var outputSlot = inventory.OutputSlot;
 
-            int remainingRoom = inventory.OutputSlot.GetRemainingRoomFor(probeStack);
+            string outputBeforeGenerate;
+            if (outputSlot.Itemstack != null)
+            {
+                ItemStack stack = outputSlot.Itemstack;
+                outputBeforeGenerate = stack.Collectible.Code + " x" + stack.StackSize;
+            }
+            else
+            {
+                outputBeforeGenerate = "empty";
+            }
+
+            DebugLogger.Log(
+                $"BlockEntityResourceCrate.OnServerTick PRE-INSERT | " +
+                $"side={Api?.Side}, " +
+                $"invId={inventory.InventoryID}, " +
+                $"invHash={inventory.GetHashCode()}, " +
+                $"itemsToProduce={itemsToProduce}, " +
+                $"outputBeforeGenerate={outputBeforeGenerate}"
+            );
+
+            int maxStackSize = collectible.MaxStackSize;
+            int currentStackSize = 0;
+
+            if (outputSlot.Itemstack != null)
+            {
+                if (!outputSlot.Itemstack.Equals(Api.World, new ItemStack(collectible, 1), Vintagestory.API.Config.GlobalConstants.IgnoredStackAttributes))
+                {
+                    _state.LastUpdateTotalHours = currentTotalHours;
+                    DebugLogger.Log("BlockEntityResourceCrate.OnServerTick END (output slot contains different item)");
+                    return;
+                }
+
+                currentStackSize = outputSlot.Itemstack.StackSize;
+            }
+
+            int remainingRoom = maxStackSize - currentStackSize;
             if (remainingRoom <= 0)
             {
                 _state.LastUpdateTotalHours = currentTotalHours;
-                DebugLogger.Log("BlockEntityResourceCrate.OnServerTick END (no room after room check)");
+                DebugLogger.Log("BlockEntityResourceCrate.OnServerTick END (output slot full)");
                 return;
             }
 
             int actualToProduce = itemsToProduce <= remainingRoom ? itemsToProduce : remainingRoom;
 
-            var generatedStack = new ItemStack(collectible, actualToProduce);
-            int inserted = inventory.OutputSlot.TryPutGenerated(generatedStack);
+            if (outputSlot.Itemstack == null)
+            {
+                outputSlot.Itemstack = new ItemStack(collectible, actualToProduce);
+            }
+            else
+            {
+                outputSlot.Itemstack.StackSize += actualToProduce;
+            }
 
-            int uninserted = itemsToProduce - inserted;
+            outputSlot.MarkDirty();
+
+            int uninserted = itemsToProduce - actualToProduce;
             _state.ProgressMinutes = remainingProgress + (uninserted * minutesPerItem);
             _state.LastUpdateTotalHours = currentTotalHours;
 
-            if (inserted > 0)
+            string outputAfterGenerate;
+            if (outputSlot.Itemstack != null)
             {
-                MarkDirty();
+                ItemStack stack = outputSlot.Itemstack;
+                outputAfterGenerate = stack.Collectible.Code + " x" + stack.StackSize;
+            }
+            else
+            {
+                outputAfterGenerate = "empty";
             }
 
-            DebugLogger.Log($"BlockEntityResourceCrate.OnServerTick END | inserted={inserted}, uninserted={uninserted}, state={_state}");
+            MarkDirty();
+
+            DebugLogger.Log(
+                $"BlockEntityResourceCrate.OnServerTick POST-INSERT | " +
+                $"side={Api?.Side}, " +
+                $"invId={inventory.InventoryID}, " +
+                $"invHash={inventory.GetHashCode()}, " +
+                $"actualToProduce={actualToProduce}, " +
+                $"uninserted={uninserted}, " +
+                $"outputAfterGenerate={outputAfterGenerate}, " +
+                $"state={_state}"
+            );
+
         }
 
         private void EnsureInventoryInitialized(ICoreAPI? api)
