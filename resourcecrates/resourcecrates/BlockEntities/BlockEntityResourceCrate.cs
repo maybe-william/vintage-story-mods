@@ -494,10 +494,20 @@ namespace resourcecrates.BlockEntities
             }
 
             int remainingRoom = maxStackSize - currentStackSize;
+            double overflow = 0;
+            double maxPracticalOverflow = 1000000000;
             if (remainingRoom <= 0)
             {
+                overflow = remainingProgress + (itemsToProduce * minutesPerItem);
+                _state.ProgressMinutes = Math.Min(maxPracticalOverflow, overflow);
                 _state.LastUpdateTotalHours = currentTotalHours;
-                DebugLogger.Log("BlockEntityResourceCrate.OnServerTick END (output slot full)");
+                MarkDirty();
+
+                DebugLogger.Log(
+                    $"BlockEntityResourceCrate.OnServerTick END (output slot full, banked stockpile) | " +
+                    $"itemsToProduce={itemsToProduce}, " +
+                    $"newProgress={_state.ProgressMinutes}"
+                );
                 return;
             }
 
@@ -515,7 +525,8 @@ namespace resourcecrates.BlockEntities
             outputSlot.MarkDirty();
 
             int uninserted = itemsToProduce - actualToProduce;
-            _state.ProgressMinutes = remainingProgress + (uninserted * minutesPerItem);
+            overflow = remainingProgress + (uninserted * minutesPerItem);
+            _state.ProgressMinutes = Math.Min(maxPracticalOverflow, overflow);
             _state.LastUpdateTotalHours = currentTotalHours;
 
             string outputAfterGenerate;
