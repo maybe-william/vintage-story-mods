@@ -5,11 +5,11 @@ namespace resourcecrates.Config
 {
     public class ResourceCrateConfig
     {
-        public double BaseTierRateMinutes { get; set; } = 180;
+        public double BaseTierRateMinutes { get; set; } = 10;
 
-        public double LowerTierFactor { get; set; } = 10;
+        public double LowerTierFactor { get; set; } = 5;
 
-        public double HigherTierFactor { get; set; } = 100;
+        public double HigherTierFactor { get; set; } = 50;
 
         public List<string> TierUpgradeItems { get; set; } = new();
 

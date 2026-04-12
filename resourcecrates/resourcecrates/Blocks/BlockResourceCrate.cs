@@ -21,8 +21,6 @@ namespace resourcecrates.Blocks
         {
             DebugLogger.Log($"BlockResourceCrate.OnBlockInteractStart START | byPlayerNull={byPlayer == null}, blockSelNull={blockSel == null}");
 
-            bool result = false;
-
             if (world == null || byPlayer == null || blockSel == null)
             {
                 DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> false (null argument)");
@@ -37,46 +35,49 @@ namespace resourcecrates.Blocks
             }
 
             ItemSlot activeHotbarSlot = byPlayer.InventoryManager?.ActiveHotbarSlot;
+            bool isSneaking = byPlayer.Entity.Controls.ShiftKey;
 
-            if (TryHandleUpgrade(byPlayer, activeHotbarSlot, be))
-            {
-                result = true;
-                DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> true (upgrade handled)");
-                return true;
-            }
+            DebugLogger.Log($"BlockResourceCrate.OnBlockInteractStart | isSneaking={isSneaking}, heldItemNull={activeHotbarSlot?.Itemstack == null}");
 
-            if (TryHandleAssignTarget(byPlayer, activeHotbarSlot, be))
+            if (isSneaking)
             {
-                result = true;
-                DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> true (assign target handled)");
-                return true;
-            }
-
-            if (TryHandleReplaceTarget(byPlayer, activeHotbarSlot, be))
-            {
-                result = true;
-                DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> true (replace target handled)");
-                return true;
-            }
-
-            if (activeHotbarSlot?.Itemstack == null)
-            {
-                if (world.Side == EnumAppSide.Server)
+                if (TryHandleUpgrade(byPlayer, activeHotbarSlot, be))
                 {
-                    byPlayer.InventoryManager?.OpenInventory(be.Inventory);
-                    DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> true (dialog opened)(server)");
+                    DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> true (shift-upgrade handled)");
                     return true;
                 }
 
-                if (world.Side == EnumAppSide.Client)
+                if (TryHandleAssignTarget(byPlayer, activeHotbarSlot, be))
                 {
-                    TryHandleOpenDialog(byPlayer, be);
-                    DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> true (dialog opened)(client)");
+                    DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> true (shift-assign target handled)");
                     return true;
                 }
+
+                if (TryHandleReplaceTarget(byPlayer, activeHotbarSlot, be))
+                {
+                    DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> true (shift-replace target handled)");
+                    return true;
+                }
+
+                DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> false (shift held, no valid crate action)");
+                return false;
             }
-            
-            result = base.OnBlockInteractStart(world, byPlayer, blockSel);
+
+            if (world.Side == EnumAppSide.Server)
+            {
+                byPlayer.InventoryManager?.OpenInventory(be.Inventory);
+                DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> true (dialog opened)(server)");
+                return true;
+            }
+
+            if (world.Side == EnumAppSide.Client)
+            {
+                bool opened = TryHandleOpenDialog(byPlayer, be);
+                DebugLogger.Log($"BlockResourceCrate.OnBlockInteractStart END -> {opened} (dialog opened)(client)");
+                return opened;
+            }
+    
+            var result = base.OnBlockInteractStart(world, byPlayer, blockSel);
 
             DebugLogger.Log($"BlockResourceCrate.OnBlockInteractStart END -> {result} (base interaction)");
             return result;
