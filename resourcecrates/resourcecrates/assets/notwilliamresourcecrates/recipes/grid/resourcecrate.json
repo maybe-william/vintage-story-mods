@@ -1,0 +1,21 @@
+{
+  "ingredientPattern": "SSS,SKS,SSS",
+  "width": 3,
+  "height": 3,
+  "ingredients": {
+    "S": {
+      "type": "item",
+      "code": "game:stick"
+    },
+    "K": {
+      "type": "item",
+      "code": "game:knife-*",
+      "isTool": true,
+      "toolDurabilityCost": 1
+    }
+  },
+  "output": {
+    "type": "block",
+    "code": "notwilliamresourcecrates:resourcecrate"
+  }
+}
