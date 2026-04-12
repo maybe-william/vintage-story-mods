@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
+using Vintagestory.API.MathTools;
 using resourcecrates.Util;
 
 namespace resourcecrates.Inventory
@@ -201,6 +202,20 @@ namespace resourcecrates.Inventory
 
             DebugLogger.Log("InventoryResourceCrate.LateInitialize END");
         }
+        
+        public override ItemSlot GetAutoPullFromSlot(BlockFacing atBlockFace)
+        {
+            DebugLogger.Log($"InventoryResourceCrate.GetAutoPullFromSlot START | face={atBlockFace?.Code}");
+            DebugLogger.Log("InventoryResourceCrate.GetAutoPullFromSlot END -> slot0");
+            return slots[0];
+        }
+
+        public override ItemSlot GetAutoPushIntoSlot(BlockFacing atBlockFace, ItemSlot fromSlot)
+        {
+            DebugLogger.Log($"InventoryResourceCrate.GetAutoPushIntoSlot START | face={atBlockFace?.Code}, fromSlotNull={fromSlot == null}");
+            DebugLogger.Log("InventoryResourceCrate.GetAutoPushIntoSlot END -> null");
+            return null;
+        }
 
         public override float GetSuitability(ItemSlot sourceSlot, ItemSlot targetSlot, bool isMerge)
         {
@@ -210,6 +225,13 @@ namespace resourcecrates.Inventory
             {
                 DebugLogger.Log("InventoryResourceCrate.GetSuitability END -> 0 (blocked output slot insertion)");
                 return 0f;
+            }
+
+            // Allow extraction FROM crate slot
+            if (sourceSlot?.Inventory == this)
+            {
+                DebugLogger.Log("InventoryResourceCrate.GetSuitability END -> 1 (slot output allowed)");
+                return 1f;
             }
 
             float result = base.GetSuitability(sourceSlot, targetSlot, isMerge);
