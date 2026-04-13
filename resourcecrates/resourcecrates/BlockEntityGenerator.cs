@@ -26,23 +26,33 @@ namespace resourcecrates
 
             string[] exactTypeNames =
             {
+                // Prefer the typed container first for chute compatibility
+                "Vintagestory.GameContent.BlockEntityGenericTypedContainer",
+
+                // Fallbacks for older or alternate names
                 "Vintagestory.GameContent.BlockEntityGenericContainer",
                 "Vintagestory.GameContent.BlockEntityContainerGeneric"
             };
 
             Type? baseType = null;
 
+            // First pass: exact full-name lookup
             foreach (var asm in assemblies)
             {
                 foreach (var typeName in exactTypeNames)
                 {
                     baseType = asm.GetType(typeName, throwOnError: false);
-                    if (baseType != null) break;
+                    if (baseType != null)
+                    {
+                        DebugLogger.Log($"BlockEntityGenerator | Exact match found: {baseType.FullName} in {asm.GetName().Name}");
+                        break;
+                    }
                 }
 
                 if (baseType != null) break;
             }
 
+            // Second pass: fallback by simple type name
             if (baseType == null)
             {
                 foreach (var asm in assemblies)
@@ -64,7 +74,11 @@ namespace resourcecrates
 
                         if (t.IsClass &&
                             !t.IsSealed &&
-                            (t.Name == "BlockEntityGenericContainer" || t.Name == "BlockEntityContainerGeneric"))
+                            (
+                                t.Name == "BlockEntityGenericTypedContainer" ||
+                                t.Name == "BlockEntityGenericContainer" ||
+                                t.Name == "BlockEntityContainerGeneric"
+                            ))
                         {
                             DebugLogger.Log($"BlockEntityGenerator | Fallback candidate found: {t.FullName} in {t.Assembly.GetName().Name}");
                             baseType = t;
@@ -78,8 +92,8 @@ namespace resourcecrates
 
             if (baseType == null)
             {
-                DebugLogger.Error("BlockEntityGenerator | Could not find runtime generic container block entity type in any loaded assembly");
-                throw new InvalidOperationException("Could not find runtime generic container block entity type.");
+                DebugLogger.Error("BlockEntityGenerator | Could not find runtime generic typed/generic container block entity type in any loaded assembly");
+                throw new InvalidOperationException("Could not find runtime generic typed/generic container block entity type.");
             }
 
             DebugLogger.Log($"BlockEntityGenerator | Resolved base type: {baseType.FullName}");
@@ -130,6 +144,7 @@ namespace resourcecrates
             generatedType = tb.CreateType();
 
             DebugLogger.Log($"BlockEntityGenerator | Generated type: {generatedType.FullName}");
+            DebugLogger.Log($"BlockEntityGenerator | Generated type base: {generatedType.BaseType?.FullName}");
             DebugLogger.Log("BlockEntityGenerator | END dynamic BE generation");
 
             return generatedType;

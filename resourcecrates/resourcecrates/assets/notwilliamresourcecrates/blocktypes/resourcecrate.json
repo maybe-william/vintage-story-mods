@@ -6,10 +6,17 @@
     { "name": "Container" }
   ],
   "attributes": {
+    "defaultType": "normal-generic",
     "inventoryClassName": "chest",
-    "quantitySlots": 16,
-    "quantityColumns": 4,
-    "dialogTitleLangCode": "Chest"
+    "quantitySlots": {
+      "normal-generic": 1
+    },
+    "quantityColumns": {
+      "normal-generic": 1
+    },
+    "dialogTitleLangCode": {
+      "normal-generic": "Chest"
+    }
   },
   "drawtype": "cube",
   "textures": {
