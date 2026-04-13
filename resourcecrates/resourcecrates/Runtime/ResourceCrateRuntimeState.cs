@@ -2,6 +2,7 @@ using System;
 using System.Runtime.CompilerServices;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
+using Vintagestory.API.Common;
 using resourcecrates.Domain;
 using resourcecrates.Serialization;
 using resourcecrates.Util;
