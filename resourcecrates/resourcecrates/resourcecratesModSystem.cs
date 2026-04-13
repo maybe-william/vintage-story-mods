@@ -50,12 +50,15 @@ namespace resourcecrates
             DebugLogger.Log("ResourceCratesModSystem.Start | ResourceCrateConfigLoader created");
 
             api.RegisterBlockClass(ModId + "." + BlockClassName, typeof(BlockResourceCrate));
-            DebugLogger.Log($"ResourceCratesModSystem.Start | Registered block class: {ModId}.resourcecrate");
+            DebugLogger.Log($"ResourceCratesModSystem.Start | Registered block class: {ModId}.{BlockClassName}");
 
+            Type dynamicBeType = BlockEntityGenerator.GetOrCreateDynamicBlockEntityType(api);
+            api.RegisterBlockEntityClass(BlockEntityClassName, dynamicBeType);
+            DebugLogger.Log($"ResourceCratesModSystem.Start | Registered block entity class: {BlockEntityClassName} -> {dynamicBeType.FullName}");
 
-            HarmonyPatches.ApplyAll();
-            DebugLogger.Log($"ResourceCratesModSystem.Start | Applied all patches");
-            
+            // HarmonyPatches.ApplyAll();
+            // DebugLogger.Log("ResourceCratesModSystem.Start | Applied all patches");
+
             DebugLogger.Log("ResourceCratesModSystem.Start END");
         }
 

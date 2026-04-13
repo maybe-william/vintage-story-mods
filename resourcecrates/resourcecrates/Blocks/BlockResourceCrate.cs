@@ -13,72 +13,83 @@ namespace resourcecrates.Blocks
             DebugLogger.Log("BlockResourceCrate.ctor END");
         }
 
-        public override bool OnBlockInteractStart(
-            IWorldAccessor world,
-            IPlayer byPlayer,
-            BlockSelection blockSel)
-        {
-            DebugLogger.Log(
-                $"BlockResourceCrate.OnBlockInteractStart START | " +
-                $"byPlayerNull={byPlayer == null}, blockSelNull={blockSel == null}"
-            );
-
-            if (world == null || byPlayer == null || blockSel == null)
-            {
-                DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> false (null argument)");
-                return false;
-            }
-
-            object? be = GetBlockEntityObject(world, blockSel.Position);
-            if (be == null)
-            {
-                DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> false (no block entity)");
-                return false;
-            }
-
-            if (!ResourceCrateRuntimeHelpers.IsResourceCrateContainer(be))
-            {
-                DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> false (not resource crate container)");
-                return false;
-            }
-
-            ItemSlot? activeHotbarSlot = byPlayer.InventoryManager?.ActiveHotbarSlot;
-            bool isSneaking = byPlayer.Entity.Controls.ShiftKey;
-
-            DebugLogger.Log(
-                $"BlockResourceCrate.OnBlockInteractStart | " +
-                $"isSneaking={isSneaking}, heldItemNull={activeHotbarSlot?.Itemstack == null}"
-            );
-
-            if (isSneaking)
-            {
-                if (ResourceCrateRuntimeInteractions.TryUpgrade(be, activeHotbarSlot))
-                {
-                    DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> true (shift-upgrade handled)");
-                    return true;
-                }
-
-                if (ResourceCrateRuntimeInteractions.TryAssignTarget(be, activeHotbarSlot))
-                {
-                    DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> true (shift-assign target handled)");
-                    return true;
-                }
-
-                if (ResourceCrateRuntimeInteractions.TryReplaceTarget(be, activeHotbarSlot))
-                {
-                    DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> true (shift-replace target handled)");
-                    return true;
-                }
-
-                DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> false (shift held, no valid crate action)");
-                return false;
-            }
-
-            bool result = base.OnBlockInteractStart(world, byPlayer, blockSel);
-
-            DebugLogger.Log($"BlockResourceCrate.OnBlockInteractStart END -> {result} (base interaction)");
-            return result;
-        }
+        // public override bool OnBlockInteractStart(
+        //     IWorldAccessor world,
+        //     IPlayer byPlayer,
+        //     BlockSelection blockSel)
+        // {
+        //     DebugLogger.Log(
+        //         $"BlockResourceCrate.OnBlockInteractStart START | " +
+        //         $"byPlayerNull={byPlayer == null}, blockSelNull={blockSel == null}"
+        //     );
+        //
+        //     if (world == null || byPlayer == null || blockSel == null)
+        //     {
+        //         DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> false (null argument)");
+        //         return false;
+        //     }
+        //
+        //     object? be = GetBlockEntityObject(world, blockSel.Position);
+        //     if (be == null)
+        //     {
+        //         DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> false (no block entity)");
+        //         return false;
+        //     }
+        //
+        //     if (!ResourceCrateRuntimeHelpers.IsResourceCrateContainer(be))
+        //     {
+        //         DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> false (not resource crate container)");
+        //         return false;
+        //     }
+        //
+        //     ItemSlot? activeHotbarSlot = byPlayer.InventoryManager?.ActiveHotbarSlot;
+        //     bool isSneaking = byPlayer.Entity.Controls.ShiftKey;
+        //
+        //     DebugLogger.Log(
+        //         $"BlockResourceCrate.OnBlockInteractStart | " +
+        //         $"isSneaking={isSneaking}, heldItemNull={activeHotbarSlot?.Itemstack == null}"
+        //     );
+        //
+        //     if (isSneaking)
+        //     {
+        //         if (ResourceCrateRuntimeInteractions.TryUpgrade(be, activeHotbarSlot))
+        //         {
+        //             DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> true (shift-upgrade handled)");
+        //             return true;
+        //         }
+        //
+        //         if (ResourceCrateRuntimeInteractions.TryAssignTarget(be, activeHotbarSlot))
+        //         {
+        //             DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> true (shift-assign target handled)");
+        //             return true;
+        //         }
+        //
+        //         if (ResourceCrateRuntimeInteractions.TryReplaceTarget(be, activeHotbarSlot))
+        //         {
+        //             DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> true (shift-replace target handled)");
+        //             return true;
+        //         }
+        //
+        //         DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> false (shift held, no valid crate action)");
+        //         return false;
+        //     }
+        //
+        //     bool result = base.OnBlockInteractStart(world, byPlayer, blockSel);
+        //
+        //     DebugLogger.Log($"BlockResourceCrate.OnBlockInteractStart END -> {result} (base interaction)");
+        //     return result;
+        // }
+        
+        // public override bool OnBlockInteractStart(
+        //     IWorldAccessor world,
+        //     IPlayer byPlayer,
+        //     BlockSelection blockSel)
+        // {
+        //     DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart START");
+        //     bool result = base.OnBlockInteractStart(world, byPlayer, blockSel);
+        //     DebugLogger.Log($"BlockResourceCrate.OnBlockInteractStart END -> {result}");
+        //     return result;
+        // }
 
         public override ItemStack OnPickBlock(IWorldAccessor world, BlockPos pos)
         {

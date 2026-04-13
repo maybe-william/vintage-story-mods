@@ -1,7 +1,16 @@
 {
   "code": "resourcecrate",
   "class": "notwilliamresourcecrates.ResourceCrate",
-  "entityClass": "GenericContainer",
+  "entityClass": "BEResourceCrate",
+  "behaviors": [
+    { "name": "Container" }
+  ],
+  "attributes": {
+    "inventoryClassName": "chest",
+    "quantitySlots": 16,
+    "quantityColumns": 4,
+    "dialogTitleLangCode": "Chest"
+  },
   "drawtype": "cube",
   "textures": {
     "all": { "base": "game:block/wood/crate/aged-sides" }
