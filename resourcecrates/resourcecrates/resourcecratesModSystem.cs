@@ -3,7 +3,6 @@ using Vintagestory.API.Common;
 using Vintagestory.API.Client;
 using Vintagestory.API.Server;
 using resourcecrates.Config;
-using resourcecrates.BlockEntities;
 using resourcecrates.Blocks;
 using resourcecrates.Util;
 using resourcecrates.Patches;
@@ -53,8 +52,6 @@ namespace resourcecrates
             api.RegisterBlockClass(ModId + "." + BlockClassName, typeof(BlockResourceCrate));
             DebugLogger.Log($"ResourceCratesModSystem.Start | Registered block class: {ModId}.resourcecrate");
 
-            api.RegisterBlockEntityClass(ModId + "." + BlockEntityClassName, typeof(BlockEntityResourceCrate));
-            DebugLogger.Log($"ResourceCratesModSystem.Start | Registered block entity class: {BlockEntityClassName}");
 
             HarmonyPatches.ApplyAll();
             DebugLogger.Log($"ResourceCratesModSystem.Start | Applied all patches");
