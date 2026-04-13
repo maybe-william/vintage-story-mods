@@ -30,8 +30,7 @@ namespace resourcecrates.Patches
 
             Harmony harmony = HarmonyInstance;
 
-            BlockChutePatches.Apply(harmony);
-            BEItemFlowPatches.Apply(harmony);
+            BlockEntityGenericContainerPatches.Apply(harmony);
 
             _applied = true;
 

@@ -1,6 +1,6 @@
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
-using resourcecrates.BlockEntities;
+using resourcecrates.Runtime;
 using resourcecrates.Util;
 
 namespace resourcecrates.Blocks
@@ -10,7 +10,6 @@ namespace resourcecrates.Blocks
         public BlockResourceCrate()
         {
             DebugLogger.Log("BlockResourceCrate.ctor START");
-
             DebugLogger.Log("BlockResourceCrate.ctor END");
         }
 
@@ -19,7 +18,10 @@ namespace resourcecrates.Blocks
             IPlayer byPlayer,
             BlockSelection blockSel)
         {
-            DebugLogger.Log($"BlockResourceCrate.OnBlockInteractStart START | byPlayerNull={byPlayer == null}, blockSelNull={blockSel == null}");
+            DebugLogger.Log(
+                $"BlockResourceCrate.OnBlockInteractStart START | " +
+                $"byPlayerNull={byPlayer == null}, blockSelNull={blockSel == null}"
+            );
 
             if (world == null || byPlayer == null || blockSel == null)
             {
@@ -27,33 +29,42 @@ namespace resourcecrates.Blocks
                 return false;
             }
 
-            BlockEntityResourceCrate be = GetBlockEntity(world, blockSel.Position);
+            object? be = GetBlockEntityObject(world, blockSel.Position);
             if (be == null)
             {
                 DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> false (no block entity)");
                 return false;
             }
 
-            ItemSlot activeHotbarSlot = byPlayer.InventoryManager?.ActiveHotbarSlot;
+            if (!ResourceCrateRuntimeHelpers.IsResourceCrateContainer(be))
+            {
+                DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> false (not resource crate container)");
+                return false;
+            }
+
+            ItemSlot? activeHotbarSlot = byPlayer.InventoryManager?.ActiveHotbarSlot;
             bool isSneaking = byPlayer.Entity.Controls.ShiftKey;
 
-            DebugLogger.Log($"BlockResourceCrate.OnBlockInteractStart | isSneaking={isSneaking}, heldItemNull={activeHotbarSlot?.Itemstack == null}");
+            DebugLogger.Log(
+                $"BlockResourceCrate.OnBlockInteractStart | " +
+                $"isSneaking={isSneaking}, heldItemNull={activeHotbarSlot?.Itemstack == null}"
+            );
 
             if (isSneaking)
             {
-                if (TryHandleUpgrade(byPlayer, activeHotbarSlot, be))
+                if (ResourceCrateRuntimeInteractions.TryUpgrade(be, activeHotbarSlot))
                 {
                     DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> true (shift-upgrade handled)");
                     return true;
                 }
 
-                if (TryHandleAssignTarget(byPlayer, activeHotbarSlot, be))
+                if (ResourceCrateRuntimeInteractions.TryAssignTarget(be, activeHotbarSlot))
                 {
                     DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> true (shift-assign target handled)");
                     return true;
                 }
 
-                if (TryHandleReplaceTarget(byPlayer, activeHotbarSlot, be))
+                if (ResourceCrateRuntimeInteractions.TryReplaceTarget(be, activeHotbarSlot))
                 {
                     DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> true (shift-replace target handled)");
                     return true;
@@ -63,60 +74,30 @@ namespace resourcecrates.Blocks
                 return false;
             }
 
-            if (world.Side == EnumAppSide.Server)
-            {
-                byPlayer.InventoryManager?.OpenInventory(be.Inventory);
-                DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> true (dialog opened)(server)");
-                return true;
-            }
-
-            if (world.Side == EnumAppSide.Client)
-            {
-                bool opened = TryHandleOpenDialog(byPlayer, be);
-                DebugLogger.Log($"BlockResourceCrate.OnBlockInteractStart END -> {opened} (dialog opened)(client)");
-                return opened;
-            }
-    
-            var result = base.OnBlockInteractStart(world, byPlayer, blockSel);
+            bool result = base.OnBlockInteractStart(world, byPlayer, blockSel);
 
             DebugLogger.Log($"BlockResourceCrate.OnBlockInteractStart END -> {result} (base interaction)");
             return result;
         }
 
-        private bool TryHandleOpenDialog(IPlayer byPlayer, BlockEntityResourceCrate be)
-        {
-            DebugLogger.Log($"BlockResourceCrate.TryHandleOpenDialog START | byPlayerNull={byPlayer == null}, beNull={be == null}");
-
-            if (byPlayer == null || be == null)
-            {
-                DebugLogger.Log("BlockResourceCrate.TryHandleOpenDialog END -> false (missing player/be)");
-                return false;
-            }
-
-            bool result = be.TryOpenDialog(byPlayer);
-
-            DebugLogger.Log($"BlockResourceCrate.TryHandleOpenDialog END -> {result}");
-            return result;
-        }
-        
         public override ItemStack OnPickBlock(IWorldAccessor world, BlockPos pos)
         {
             DebugLogger.Log($"BlockResourceCrate.OnPickBlock START | pos={pos}");
 
-            ItemStack result;
-
-            BlockEntityResourceCrate be = GetBlockEntity(world, pos);
-            if (be != null)
+            object? be = GetBlockEntityObject(world, pos);
+            if (be != null && ResourceCrateRuntimeHelpers.IsResourceCrateContainer(be))
             {
-                result = be.CreateDroppedStack();
-                DebugLogger.Log("BlockResourceCrate.OnPickBlock END (from block entity state)");
+                ResourceCrateRuntimeState runtime = ResourceCrateRuntimeState.GetOrCreate(be);
+                ItemStack result = ResourceCrateRuntimeInteractions.CreateDroppedStack(world, this, runtime);
+
+                DebugLogger.Log("BlockResourceCrate.OnPickBlock END (from runtime state)");
                 return result;
             }
 
-            result = base.OnPickBlock(world, pos);
+            ItemStack baseResult = base.OnPickBlock(world, pos);
 
             DebugLogger.Log("BlockResourceCrate.OnPickBlock END (base)");
-            return result;
+            return baseResult;
         }
 
         public override void OnBlockBroken(
@@ -125,31 +106,39 @@ namespace resourcecrates.Blocks
             IPlayer byPlayer,
             float dropQuantityMultiplier = 1f)
         {
-            DebugLogger.Log($"BlockResourceCrate.OnBlockBroken START | pos={pos}, byPlayerNull={byPlayer == null}, dropQuantityMultiplier={dropQuantityMultiplier}");
+            DebugLogger.Log(
+                $"BlockResourceCrate.OnBlockBroken START | " +
+                $"pos={pos}, byPlayerNull={byPlayer == null}, dropQuantityMultiplier={dropQuantityMultiplier}"
+            );
 
-            BlockEntityResourceCrate be = GetBlockEntity(world, pos);
+            object? be = GetBlockEntityObject(world, pos);
 
-            if (world != null && world.Side == EnumAppSide.Server && be != null)
+            if (world != null && world.Side == EnumAppSide.Server && be != null && ResourceCrateRuntimeHelpers.IsResourceCrateContainer(be))
             {
-                ItemStack droppedStack = be.CreateDroppedStack();
+                ResourceCrateRuntimeState runtime = ResourceCrateRuntimeState.GetOrCreate(be);
 
+                ItemStack droppedStack = ResourceCrateRuntimeInteractions.CreateDroppedStack(world, this, runtime);
                 if (droppedStack != null)
                 {
                     world.SpawnItemEntity(droppedStack, pos.ToVec3d().Add(0.5, 0.5, 0.5));
                     DebugLogger.Log("BlockResourceCrate.OnBlockBroken | Spawned preserved crate itemstack");
                 }
 
-                ItemSlot outputSlot = be.ResourceInventory?.OutputSlot;
+                InventoryBase? inventory = ResourceCrateRuntimeHelpers.GetInventory(be);
+                ItemSlot? outputSlot = inventory == null ? null : ResourceCrateRuntimeHelpers.GetSlot(inventory, 0);
+
                 if (outputSlot?.Itemstack != null && outputSlot.Itemstack.StackSize > 0)
                 {
                     ItemStack contents = outputSlot.Itemstack.Clone();
                     world.SpawnItemEntity(contents, pos.ToVec3d().Add(0.5, 0.5, 0.5));
                     outputSlot.Itemstack = null;
                     outputSlot.MarkDirty();
+
                     DebugLogger.Log("BlockResourceCrate.OnBlockBroken | Spawned crate contents");
                 }
 
                 world.BlockAccessor.SetBlock(0, pos);
+
                 DebugLogger.Log("BlockResourceCrate.OnBlockBroken END (custom server break path)");
                 return;
             }
@@ -168,15 +157,16 @@ namespace resourcecrates.Blocks
 
             string result = base.GetPlacedBlockInfo(world, pos, forPlayer);
 
-            BlockEntityResourceCrate be = GetBlockEntity(world, pos);
-            if (be == null)
+            object? be = GetBlockEntityObject(world, pos);
+            if (be == null || !ResourceCrateRuntimeHelpers.IsResourceCrateContainer(be))
             {
-                DebugLogger.Log($"BlockResourceCrate.GetPlacedBlockInfo END -> {result} (no block entity)");
+                DebugLogger.Log($"BlockResourceCrate.GetPlacedBlockInfo END -> {result} (no compatible block entity)");
                 return result;
             }
 
-            string targetCode = be.State.TargetItemCode?.ToShortString() ?? "none";
-            string extra = $"\nTier: {be.State.CrateTier}\nTarget: {targetCode}";
+            ResourceCrateRuntimeState runtime = ResourceCrateRuntimeState.GetOrCreate(be);
+            string targetCode = runtime.State.TargetItemCode?.ToShortString() ?? "none";
+            string extra = $"\nTier: {runtime.State.CrateTier}\nTarget: {targetCode}";
 
             result += extra;
 
@@ -184,100 +174,23 @@ namespace resourcecrates.Blocks
             return result;
         }
 
-        private bool TryHandleUpgrade(IPlayer byPlayer, ItemSlot activeHotbarSlot, BlockEntityResourceCrate be)
+        private object? GetBlockEntityObject(IWorldAccessor world, BlockPos pos)
         {
-            DebugLogger.Log($"BlockResourceCrate.TryHandleUpgrade START | byPlayerNull={byPlayer == null}, activeHotbarSlotNull={activeHotbarSlot == null}");
+            DebugLogger.Log($"BlockResourceCrate.GetBlockEntityObject START | pos={pos}");
 
-            bool result = false;
-
-            if (byPlayer == null || activeHotbarSlot?.Itemstack == null || be == null)
-            {
-                DebugLogger.Log("BlockResourceCrate.TryHandleUpgrade END -> false (missing player/slot/be)");
-                return false;
-            }
-
-            result = be.TryUpgrade(activeHotbarSlot);
-
-            if (result)
-            {
-                MarkBlockEntityDirty(be);
-            }
-
-            DebugLogger.Log($"BlockResourceCrate.TryHandleUpgrade END -> {result}");
-            return result;
-        }
-
-        private bool TryHandleAssignTarget(IPlayer byPlayer, ItemSlot activeHotbarSlot, BlockEntityResourceCrate be)
-        {
-            DebugLogger.Log($"BlockResourceCrate.TryHandleAssignTarget START | byPlayerNull={byPlayer == null}, activeHotbarSlotNull={activeHotbarSlot == null}");
-
-            bool result = false;
-
-            if (byPlayer == null || activeHotbarSlot?.Itemstack == null || be == null)
-            {
-                DebugLogger.Log("BlockResourceCrate.TryHandleAssignTarget END -> false (missing player/slot/be)");
-                return false;
-            }
-
-            result = be.TryAssignTarget(activeHotbarSlot);
-
-            if (result)
-            {
-                MarkBlockEntityDirty(be);
-            }
-
-            DebugLogger.Log($"BlockResourceCrate.TryHandleAssignTarget END -> {result}");
-            return result;
-        }
-
-        private bool TryHandleReplaceTarget(IPlayer byPlayer, ItemSlot activeHotbarSlot, BlockEntityResourceCrate be)
-        {
-            DebugLogger.Log($"BlockResourceCrate.TryHandleReplaceTarget START | byPlayerNull={byPlayer == null}, activeHotbarSlotNull={activeHotbarSlot == null}");
-
-            bool result = false;
-
-            if (byPlayer == null || activeHotbarSlot?.Itemstack == null || be == null)
-            {
-                DebugLogger.Log("BlockResourceCrate.TryHandleReplaceTarget END -> false (missing player/slot/be)");
-                return false;
-            }
-
-            result = be.TryReplaceTarget(activeHotbarSlot);
-
-            if (result)
-            {
-                MarkBlockEntityDirty(be);
-            }
-
-            DebugLogger.Log($"BlockResourceCrate.TryHandleReplaceTarget END -> {result}");
-            return result;
-        }
-
-        private BlockEntityResourceCrate GetBlockEntity(IWorldAccessor world, BlockPos pos)
-        {
-            DebugLogger.Log($"BlockResourceCrate.GetBlockEntity START | pos={pos}");
-
-            BlockEntityResourceCrate result = null;
+            object? result = null;
 
             if (world?.BlockAccessor != null && pos != null)
             {
-                result = world.BlockAccessor.GetBlockEntity(pos) as BlockEntityResourceCrate;
+                result = world.BlockAccessor.GetBlockEntity(pos);
             }
 
-            DebugLogger.Log($"BlockResourceCrate.GetBlockEntity END -> {(result == null ? "null" : "found")}");
+            DebugLogger.Log(
+                $"BlockResourceCrate.GetBlockEntityObject END -> " +
+                $"{(result == null ? "null" : result.GetType().FullName)}"
+            );
+
             return result;
-        }
-
-        private void MarkBlockEntityDirty(BlockEntityResourceCrate be)
-        {
-            DebugLogger.Log($"BlockResourceCrate.MarkBlockEntityDirty START | beNull={be == null}");
-
-            if (be != null)
-            {
-                be.MarkDirty(true);
-            }
-
-            DebugLogger.Log("BlockResourceCrate.MarkBlockEntityDirty END");
         }
     }
 }

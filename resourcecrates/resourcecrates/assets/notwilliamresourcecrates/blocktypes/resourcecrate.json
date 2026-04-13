@@ -1,7 +1,7 @@
 {
   "code": "resourcecrate",
   "class": "notwilliamresourcecrates.ResourceCrate",
-  "entityClass": "notwilliamresourcecrates.BEResourceCrate",
+  "entityClass": "BlockEntityGenericContainer",
   "drawtype": "cube",
   "textures": {
     "all": { "base": "game:block/wood/crate/aged-sides" }
