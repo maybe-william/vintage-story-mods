@@ -9,28 +9,66 @@ namespace resourcecrates.Runtime
 {
     public static class ResourceCrateRuntimeHelpers
     {
+
         public static bool IsResourceCrateContainer(object beInstance)
         {
-            if (beInstance == null) return false;
+            DebugLogger.Log("IsResourceCrateContainer START");
 
-            object? blockObj = AccessTools.Property(beInstance.GetType(), "Block")?.GetValue(beInstance);
-            if (blockObj == null) return false;
+            if (beInstance == null)
+            {
+                DebugLogger.Log("IsResourceCrateContainer -> false (beInstance null)");
+                return false;
+            }
 
-            object? codeObj = AccessTools.Property(blockObj.GetType(), "Code")?.GetValue(blockObj);
-            if (codeObj == null) return false;
+            try
+            {
+                var blockProp = AccessTools.Property(beInstance.GetType(), "Block");
+                var blockObj = blockProp?.GetValue(beInstance);
 
-            string codeString = codeObj.ToString() ?? "";
+                if (blockObj is Block block)
+                {
+                    string codeString = block.Code?.ToString() ?? "NULL";
+                    DebugLogger.Log($"Block TYPE: {block.GetType().FullName}");
+                    DebugLogger.Log($"Block Code (ToString): {codeString}");
 
-            bool result =
-                codeString.Equals("notwilliamresourcecrates:resourcecrate", StringComparison.OrdinalIgnoreCase) ||
-                codeString.EndsWith(":resourcecrate", StringComparison.OrdinalIgnoreCase);
+                    bool result =
+                        codeString.Equals("notwilliamresourcecrates:resourcecrate", StringComparison.OrdinalIgnoreCase) ||
+                        codeString.EndsWith(":resourcecrate", StringComparison.OrdinalIgnoreCase);
 
-            DebugLogger.Log(
-                $"ResourceCrateRuntimeHelpers.IsResourceCrateContainer | " +
-                $"code={codeString}, result={result}"
-            );
+                    DebugLogger.Log($"IsResourceCrateContainer RESULT (block path): {result}");
+                    return result;
+                }
 
-            return result;
+                ICoreAPI? api = GetApi(beInstance);
+                BlockPos? pos = GetPos(beInstance);
+
+                DebugLogger.Log($"Fallback API null: {api == null}");
+                DebugLogger.Log($"Fallback POS null: {pos == null}");
+
+                if (api?.World != null && pos != null)
+                {
+                    Block worldBlock = api.World.BlockAccessor.GetBlock(pos);
+                    string codeString = worldBlock?.Code?.ToString() ?? "NULL";
+
+                    DebugLogger.Log($"Fallback Block TYPE: {worldBlock?.GetType().FullName}");
+                    DebugLogger.Log($"Fallback Block Code: {codeString}");
+
+                    bool result =
+                        codeString.Equals("notwilliamresourcecrates:resourcecrate", StringComparison.OrdinalIgnoreCase) ||
+                        codeString.EndsWith(":resourcecrate", StringComparison.OrdinalIgnoreCase);
+
+                    DebugLogger.Log($"IsResourceCrateContainer RESULT (fallback path): {result}");
+                    return result;
+                }
+
+                DebugLogger.Log("IsResourceCrateContainer -> false (no valid detection path)");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                DebugLogger.Error($"IsResourceCrateContainer EXCEPTION: {ex}");
+                return false;
+            }
         }
 
         public static ICoreAPI? GetApi(object beInstance)
