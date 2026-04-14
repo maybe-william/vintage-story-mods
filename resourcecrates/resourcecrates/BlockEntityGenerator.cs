@@ -17,94 +17,29 @@ namespace resourcecrates
 
             DebugLogger.Log("BlockEntityGenerator | START dynamic BE generation");
 
-            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+            var asm = AppDomain.CurrentDomain
+                .GetAssemblies()
+                .FirstOrDefault(a => a.GetName().Name == "VSSurvivalMod");
 
-            foreach (var asm in assemblies.OrderBy(a => a.GetName().Name))
+            if (asm == null)
             {
-                DebugLogger.Log($"BlockEntityGenerator | Loaded assembly: {asm.GetName().Name}");
+                DebugLogger.Error("BlockEntityGenerator | VSSurvivalMod assembly not loaded");
+                throw new InvalidOperationException("VSSurvivalMod assembly is not loaded.");
             }
 
-            string[] exactTypeNames =
-            {
-                // Prefer the typed container first for chute compatibility
-                "Vintagestory.GameContent.BlockEntityGenericTypedContainer",
-
-                // Fallbacks for older or alternate names
-                "Vintagestory.GameContent.BlockEntityGenericContainer",
-                "Vintagestory.GameContent.BlockEntityContainerGeneric"
-            };
-
-            Type? baseType = null;
-
-            // First pass: exact full-name lookup
-            foreach (var asm in assemblies)
-            {
-                foreach (var typeName in exactTypeNames)
-                {
-                    baseType = asm.GetType(typeName, throwOnError: false);
-                    if (baseType != null)
-                    {
-                        DebugLogger.Log($"BlockEntityGenerator | Exact match found: {baseType.FullName} in {asm.GetName().Name}");
-                        break;
-                    }
-                }
-
-                if (baseType != null) break;
-            }
-
-            // Second pass: fallback by simple type name
-            if (baseType == null)
-            {
-                foreach (var asm in assemblies)
-                {
-                    Type[] types;
-
-                    try
-                    {
-                        types = asm.GetTypes();
-                    }
-                    catch (ReflectionTypeLoadException ex)
-                    {
-                        types = ex.Types.Where(t => t != null).Cast<Type>().ToArray();
-                    }
-
-                    foreach (var t in types)
-                    {
-                        if (t == null) continue;
-
-                        if (t.IsClass &&
-                            !t.IsSealed &&
-                            (
-                                t.Name == "BlockEntityGenericTypedContainer" ||
-                                t.Name == "BlockEntityGenericContainer" ||
-                                t.Name == "BlockEntityContainerGeneric"
-                            ))
-                        {
-                            DebugLogger.Log($"BlockEntityGenerator | Fallback candidate found: {t.FullName} in {t.Assembly.GetName().Name}");
-                            baseType = t;
-                            break;
-                        }
-                    }
-
-                    if (baseType != null) break;
-                }
-            }
+            Type? baseType = asm.GetType("Vintagestory.GameContent.BlockEntityGenericTypedContainer");
 
             if (baseType == null)
             {
-                DebugLogger.Error("BlockEntityGenerator | Could not find runtime generic typed/generic container block entity type in any loaded assembly");
-                throw new InvalidOperationException("Could not find runtime generic typed/generic container block entity type.");
+                DebugLogger.Error("BlockEntityGenerator | Could not find typed container class in VSSurvivalMod");
+                throw new InvalidOperationException(
+                    "Could not find Vintagestory.GameContent.BlockEntityGenericTypedContainer in VSSurvivalMod."
+                );
             }
 
             DebugLogger.Log($"BlockEntityGenerator | Resolved base type: {baseType.FullName}");
             DebugLogger.Log($"BlockEntityGenerator | Base type assembly: {baseType.Assembly.GetName().Name}");
-
-            if (baseType.IsSealed)
-            {
-                DebugLogger.Error($"BlockEntityGenerator | Base type is sealed: {baseType.FullName}");
-                throw new InvalidOperationException($"Base type is sealed: {baseType.FullName}");
-            }
-
+            
             ConstructorInfo? baseCtor = baseType.GetConstructor(
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance,
                 binder: null,
