@@ -1,207 +1,133 @@
+using resourcecrates.BlockEntities;
+using resourcecrates.Util;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
-using resourcecrates.Runtime;
-using resourcecrates.Util;
 
 namespace resourcecrates.Blocks
 {
     public class BlockResourceCrate : Block
     {
-        public BlockResourceCrate()
+        public override bool OnBlockInteractStart(
+            IWorldAccessor world,
+            IPlayer byPlayer,
+            BlockSelection blockSel)
         {
-            DebugLogger.Log("BlockResourceCrate.ctor START");
-            DebugLogger.Log("BlockResourceCrate.ctor END");
-        }
+            DebugLogger.Log(
+                $"BlockResourceCrate.OnBlockInteractStart START | player={byPlayer?.PlayerName}, " +
+                $"pos={blockSel?.Position}, sneaking={byPlayer?.Entity?.Controls?.Sneak}, " +
+                $"held={byPlayer?.InventoryManager?.ActiveHotbarSlot?.Itemstack?.Collectible?.Code}"
+            );
 
-        // public override bool OnBlockInteractStart(
-        //     IWorldAccessor world,
-        //     IPlayer byPlayer,
-        //     BlockSelection blockSel)
-        // {
-        //     DebugLogger.Log(
-        //         $"BlockResourceCrate.OnBlockInteractStart START | " +
-        //         $"byPlayerNull={byPlayer == null}, blockSelNull={blockSel == null}"
-        //     );
-        //
-        //     if (world == null || byPlayer == null || blockSel == null)
-        //     {
-        //         DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> false (null argument)");
-        //         return false;
-        //     }
-        //
-        //     object? be = GetBlockEntityObject(world, blockSel.Position);
-        //     if (be == null)
-        //     {
-        //         DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> false (no block entity)");
-        //         return false;
-        //     }
-        //
-        //     if (!ResourceCrateRuntimeHelpers.IsResourceCrateContainer(be))
-        //     {
-        //         DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> false (not resource crate container)");
-        //         return false;
-        //     }
-        //
-        //     ItemSlot? activeHotbarSlot = byPlayer.InventoryManager?.ActiveHotbarSlot;
-        //     bool isSneaking = byPlayer.Entity.Controls.ShiftKey;
-        //
-        //     DebugLogger.Log(
-        //         $"BlockResourceCrate.OnBlockInteractStart | " +
-        //         $"isSneaking={isSneaking}, heldItemNull={activeHotbarSlot?.Itemstack == null}"
-        //     );
-        //
-        //     if (isSneaking)
-        //     {
-        //         if (ResourceCrateRuntimeInteractions.TryUpgrade(be, activeHotbarSlot))
-        //         {
-        //             DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> true (shift-upgrade handled)");
-        //             return true;
-        //         }
-        //
-        //         if (ResourceCrateRuntimeInteractions.TryAssignTarget(be, activeHotbarSlot))
-        //         {
-        //             DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> true (shift-assign target handled)");
-        //             return true;
-        //         }
-        //
-        //         if (ResourceCrateRuntimeInteractions.TryReplaceTarget(be, activeHotbarSlot))
-        //         {
-        //             DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> true (shift-replace target handled)");
-        //             return true;
-        //         }
-        //
-        //         DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> false (shift held, no valid crate action)");
-        //         return false;
-        //     }
-        //
-        //     bool result = base.OnBlockInteractStart(world, byPlayer, blockSel);
-        //
-        //     DebugLogger.Log($"BlockResourceCrate.OnBlockInteractStart END -> {result} (base interaction)");
-        //     return result;
-        // }
-        
-        // public override bool OnBlockInteractStart(
-        //     IWorldAccessor world,
-        //     IPlayer byPlayer,
-        //     BlockSelection blockSel)
-        // {
-        //     DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart START");
-        //     bool result = base.OnBlockInteractStart(world, byPlayer, blockSel);
-        //     DebugLogger.Log($"BlockResourceCrate.OnBlockInteractStart END -> {result}");
-        //     return result;
-        // }
+            if (world == null || byPlayer == null || blockSel == null)
+            {
+                DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> false (invalid args)");
+                return false;
+            }
+
+            BlockPos pos = blockSel.Position;
+            BlockEntityResourceCrate be = world.BlockAccessor.GetBlockEntity(pos) as BlockEntityResourceCrate;
+
+            if (be == null)
+            {
+                DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> false (BE missing)");
+                return false;
+            }
+
+            ItemSlot handSlot = byPlayer.InventoryManager?.ActiveHotbarSlot;
+            bool sneaking = byPlayer.Entity?.Controls?.Sneak == true;
+
+            // Normal right click: let inherited typed-container behavior open the GUI.
+            if (!sneaking)
+            {
+                bool result = base.OnBlockInteractStart(world, byPlayer, blockSel);
+                DebugLogger.Log($"BlockResourceCrate.OnBlockInteractStart END -> {result} (base interaction)");
+                return result;
+            }
+
+            // Sneak + empty hand: do nothing special for now.
+            if (handSlot?.Itemstack == null)
+            {
+                DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> false (sneak with empty hand)");
+                return false;
+            }
+
+            // Server performs the actual state mutation.
+            // Client returns true if it looks like a valid sneak action, to suppress normal open behavior.
+            if (world.Side == EnumAppSide.Client)
+            {
+                bool clientHandled =
+                    be.State != null &&
+                    handSlot.Itemstack?.Collectible?.Code != null;
+
+                DebugLogger.Log($"BlockResourceCrate.OnBlockInteractStart END -> {clientHandled} (client prediction)");
+                return clientHandled;
+            }
+
+            // Priority order:
+            // 1. Upgrade if valid
+            // 2. Otherwise assign/replace target if valid
+            if (be.TryUpgrade(byPlayer, handSlot))
+            {
+                DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> true (upgrade)");
+                return true;
+            }
+
+            if (be.TrySetOrReplaceTarget(byPlayer, handSlot))
+            {
+                DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> true (target set/replace)");
+                return true;
+            }
+
+            DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> false (no sneak action matched)");
+            return false;
+        }
 
         public override ItemStack OnPickBlock(IWorldAccessor world, BlockPos pos)
         {
             DebugLogger.Log($"BlockResourceCrate.OnPickBlock START | pos={pos}");
 
-            object? be = GetBlockEntityObject(world, pos);
-            if (be != null && ResourceCrateRuntimeHelpers.IsResourceCrateContainer(be))
-            {
-                ResourceCrateRuntimeState runtime = ResourceCrateRuntimeState.GetOrCreate(be);
-                ItemStack result = ResourceCrateRuntimeInteractions.CreateDroppedStack(world, this, runtime);
+            ItemStack stack = base.OnPickBlock(world, pos);
 
-                DebugLogger.Log("BlockResourceCrate.OnPickBlock END (from runtime state)");
-                return result;
+            if (stack == null)
+            {
+                DebugLogger.Log("BlockResourceCrate.OnPickBlock END -> null");
+                return null;
             }
 
-            ItemStack baseResult = base.OnPickBlock(world, pos);
+            BlockEntityResourceCrate be = world.BlockAccessor.GetBlockEntity(pos) as BlockEntityResourceCrate;
+            be?.WriteCrateStateToItemStack(stack);
 
-            DebugLogger.Log("BlockResourceCrate.OnPickBlock END (base)");
-            return baseResult;
+            DebugLogger.Log($"BlockResourceCrate.OnPickBlock END | stack={stack.Collectible?.Code}");
+            return stack;
         }
 
         public override void OnBlockBroken(
             IWorldAccessor world,
             BlockPos pos,
             IPlayer byPlayer,
-            float dropQuantityMultiplier = 1f)
+            float dropQuantityMultiplier = 1)
         {
-            DebugLogger.Log(
-                $"BlockResourceCrate.OnBlockBroken START | " +
-                $"pos={pos}, byPlayerNull={byPlayer == null}, dropQuantityMultiplier={dropQuantityMultiplier}"
-            );
+            DebugLogger.Log($"BlockResourceCrate.OnBlockBroken START | pos={pos}, player={byPlayer?.PlayerName}");
 
-            object? be = GetBlockEntityObject(world, pos);
-
-            if (world != null && world.Side == EnumAppSide.Server && be != null && ResourceCrateRuntimeHelpers.IsResourceCrateContainer(be))
+            if (world?.Side == EnumAppSide.Server)
             {
-                ResourceCrateRuntimeState runtime = ResourceCrateRuntimeState.GetOrCreate(be);
+                BlockEntityResourceCrate be = world.BlockAccessor.GetBlockEntity(pos) as BlockEntityResourceCrate;
 
-                ItemStack droppedStack = ResourceCrateRuntimeInteractions.CreateDroppedStack(world, this, runtime);
-                if (droppedStack != null)
+                if (be != null)
                 {
-                    world.SpawnItemEntity(droppedStack, pos.ToVec3d().Add(0.5, 0.5, 0.5));
-                    DebugLogger.Log("BlockResourceCrate.OnBlockBroken | Spawned preserved crate itemstack");
+                    ItemStack drop = new ItemStack(this);
+                    be.WriteCrateStateToItemStack(drop);
+
+                    world.SpawnItemEntity(drop, pos.ToVec3d().Add(0.5, 0.5, 0.5));
+                    world.BlockAccessor.SetBlock(0, pos);
+
+                    DebugLogger.Log("BlockResourceCrate.OnBlockBroken END (custom server drop)");
+                    return;
                 }
-
-                InventoryBase? inventory = ResourceCrateRuntimeHelpers.GetInventory(be);
-                ItemSlot? outputSlot = inventory == null ? null : ResourceCrateRuntimeHelpers.GetSlot(inventory, 0);
-
-                if (outputSlot?.Itemstack != null && outputSlot.Itemstack.StackSize > 0)
-                {
-                    ItemStack contents = outputSlot.Itemstack.Clone();
-                    world.SpawnItemEntity(contents, pos.ToVec3d().Add(0.5, 0.5, 0.5));
-                    outputSlot.Itemstack = null;
-                    outputSlot.MarkDirty();
-
-                    DebugLogger.Log("BlockResourceCrate.OnBlockBroken | Spawned crate contents");
-                }
-
-                world.BlockAccessor.SetBlock(0, pos);
-
-                DebugLogger.Log("BlockResourceCrate.OnBlockBroken END (custom server break path)");
-                return;
             }
 
             base.OnBlockBroken(world, pos, byPlayer, dropQuantityMultiplier);
-
             DebugLogger.Log("BlockResourceCrate.OnBlockBroken END (base)");
-        }
-
-        public override string GetPlacedBlockInfo(
-            IWorldAccessor world,
-            BlockPos pos,
-            IPlayer forPlayer)
-        {
-            DebugLogger.Log($"BlockResourceCrate.GetPlacedBlockInfo START | pos={pos}, forPlayerNull={forPlayer == null}");
-
-            string result = base.GetPlacedBlockInfo(world, pos, forPlayer);
-
-            object? be = GetBlockEntityObject(world, pos);
-            if (be == null || !ResourceCrateRuntimeHelpers.IsResourceCrateContainer(be))
-            {
-                DebugLogger.Log($"BlockResourceCrate.GetPlacedBlockInfo END -> {result} (no compatible block entity)");
-                return result;
-            }
-
-            ResourceCrateRuntimeState runtime = ResourceCrateRuntimeState.GetOrCreate(be);
-            string targetCode = runtime.State.TargetItemCode?.ToShortString() ?? "none";
-            string extra = $"\nTier: {runtime.State.CrateTier}\nTarget: {targetCode}";
-
-            result += extra;
-
-            DebugLogger.Log($"BlockResourceCrate.GetPlacedBlockInfo END -> {result}");
-            return result;
-        }
-
-        private object? GetBlockEntityObject(IWorldAccessor world, BlockPos pos)
-        {
-            DebugLogger.Log($"BlockResourceCrate.GetBlockEntityObject START | pos={pos}");
-
-            object? result = null;
-
-            if (world?.BlockAccessor != null && pos != null)
-            {
-                result = world.BlockAccessor.GetBlockEntity(pos);
-            }
-
-            DebugLogger.Log(
-                $"BlockResourceCrate.GetBlockEntityObject END -> " +
-                $"{(result == null ? "null" : result.GetType().FullName)}"
-            );
-
-            return result;
         }
     }
 }

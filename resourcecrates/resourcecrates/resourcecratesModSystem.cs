@@ -5,7 +5,6 @@ using Vintagestory.API.Server;
 using resourcecrates.Config;
 using resourcecrates.Blocks;
 using resourcecrates.Util;
-using resourcecrates.Patches;
 
 namespace resourcecrates
 {
