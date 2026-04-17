@@ -90,17 +90,123 @@ namespace resourcecrates.Config
                 },
                 TierItems = new List<List<string>>
                 {
+                    // Tier 0
                     new()
                     {
                         "game:log-*",
+                        "game:clay-blue",
+                        "game:clay-red",
                         "game:drygrass",
-                        "notwilliamawcud:notwilliamcud"
+                        "game:stick",
+                        "game:papyrustops",
+                        "game:cattailtops",
+                        "game:firewood",
+                        "game:flint"
                     },
-                    new() { "game:plank-oak" },
-                    new() { "game:nugget-nativecopper" },
-                    new() { "game:nugget-cassiterite" },
-                    new() { "game:ironbloom" },
-                    new() { "game:ingot-blistersteel" }
+
+                    // Tier 1
+                    new()
+                    {
+                        "game:plank-*",
+                        
+                        // rock all types minus bauxite
+                        "game:rock-andesite",
+                        "game:rock-basalt",
+                        "game:rock-chalk",
+                        "game:rock-chert",
+                        "game:rock-claystone",
+                        "game:rock-conglomerate",
+                        "game:rock-granite",
+                        "game:rock-greenmarble",
+                        "game:rock-halite",
+                        "game:rock-limestone",
+                        "game:rock-marble",
+                        "game:rock-peridotite",
+                        "game:rock-phyllite",
+                        "game:rock-redsandstone",
+                        "game:rock-salt",
+                        "game:rock-sandstone",
+                        "game:rock-shale",
+                        "game:rock-slate",
+
+                        // stone all types minus bauxite
+                        "game:stone-andesite",
+                        "game:stone-basalt",
+                        "game:stone-chalk",
+                        "game:stone-chert",
+                        "game:stone-claystone",
+                        "game:stone-conglomerate",
+                        "game:stone-granite",
+                        "game:stone-greenmarble",
+                        "game:stone-halite",
+                        "game:stone-limestone",
+                        "game:stone-marble",
+                        "game:stone-peridotite",
+                        "game:stone-phyllite",
+                        "game:stone-redsandstone",
+                        "game:stone-salt",
+                        "game:stone-sandstone",
+                        "game:stone-shale",
+                        "game:stone-slate",
+
+                        "game:fat",
+                        "game:lime",
+                        "game:peatbrick",
+                        "game:soil-low-*",
+                        "game:calcinatedflint"
+                    },
+
+                    // Tier 2
+                    new()
+                    {
+                        "game:nugget-nativecopper",
+                        "game:nugget-malachite",
+                        "game:stone-bauxite",
+                        "game:clearquartz",
+                        "game:crystal-milkyquartz-*",
+                        "game:resin",
+                        "game:charcoal",
+                        "game:clay-fire",
+                        "game:soil-medium-*"
+                    },
+
+                    // Tier 3
+                    new()
+                    {
+                        "game:nugget-cassiterite",
+                        "game:nugget-sphalerite",
+                        "game:nugget-bismuthinite",
+                        "game:crystal-olivine-*",
+                        "game:nugget-nativesilver",
+                        "game:nugget-galena",
+                        "game:powder-sulfur",
+                        "game:saltpeter",
+                        "game:soil-high-*",
+                        "game:looseores-lignite-*"
+                    },
+
+                    // Tier 4
+                    new()
+                    {
+                        "game:ironbloom",
+                        "game:nugget-hematite",
+                        "game:nugget-limonite",
+                        "game:nugget-magnetite",
+                        "game:nugget-nativegold",
+                        "game:gear-rusty",
+                        "game:looseores-bituminouscoal-*",
+                        "game:rot"
+                    },
+
+                    // Tier 5
+                    new()
+                    {
+                        "game:ingot-blistersteel",
+                        "game:nugget-ilmenite",
+                        "game:nugget-chromite",
+                        "game:gear-temporal",
+                        "game:jonasparts-*"
+                    }
                 }
             };
 
