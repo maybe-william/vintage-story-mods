@@ -74,7 +74,7 @@ namespace resourcecrates.Config
         public ResourceCrateConfig CreateDefaultConfig()
         {
             DebugLogger.Log("ResourceCrateConfigLoader.CreateDefaultConfig START");
-
+            
             ResourceCrateConfig config = new ResourceCrateConfig
             {
                 BaseTierRateMinutes = 5,
@@ -110,50 +110,16 @@ namespace resourcecrates.Config
                         "game:plank-*",
                         
                         // rock all types minus bauxite
-                        "game:rock-andesite",
-                        "game:rock-basalt",
-                        "game:rock-chalk",
-                        "game:rock-chert",
-                        "game:rock-claystone",
-                        "game:rock-conglomerate",
-                        "game:rock-granite",
-                        "game:rock-greenmarble",
-                        "game:rock-halite",
-                        "game:rock-limestone",
-                        "game:rock-marble",
-                        "game:rock-peridotite",
-                        "game:rock-phyllite",
-                        "game:rock-redsandstone",
-                        "game:rock-salt",
-                        "game:rock-sandstone",
-                        "game:rock-shale",
-                        "game:rock-slate",
+                        "game:rock-*",
 
                         // stone all types minus bauxite
-                        "game:stone-andesite",
-                        "game:stone-basalt",
-                        "game:stone-chalk",
-                        "game:stone-chert",
-                        "game:stone-claystone",
-                        "game:stone-conglomerate",
-                        "game:stone-granite",
-                        "game:stone-greenmarble",
-                        "game:stone-halite",
-                        "game:stone-limestone",
-                        "game:stone-marble",
-                        "game:stone-peridotite",
-                        "game:stone-phyllite",
-                        "game:stone-redsandstone",
-                        "game:stone-salt",
-                        "game:stone-sandstone",
-                        "game:stone-shale",
-                        "game:stone-slate",
+                        "game:stone-*",
 
-                        "game:fat",
+                        // "game:fat", // held item interaction
                         "game:lime",
                         "game:peatbrick",
                         "game:soil-low-*",
-                        "game:calcinatedflint"
+                        "game:calcined-flint"
                     },
 
                     // Tier 2
@@ -163,7 +129,8 @@ namespace resourcecrates.Config
                         "game:nugget-malachite",
                         "game:stone-bauxite",
                         "game:clearquartz",
-                        "game:crystal-milkyquartz-*",
+                        "game:smokyquartz",
+                        "game:ore-quartz",
                         "game:resin",
                         "game:charcoal",
                         "game:clay-fire",
@@ -176,13 +143,13 @@ namespace resourcecrates.Config
                         "game:nugget-cassiterite",
                         "game:nugget-sphalerite",
                         "game:nugget-bismuthinite",
-                        "game:crystal-olivine-*",
+                        "game:ore-olivine",
                         "game:nugget-nativesilver",
                         "game:nugget-galena",
-                        "game:powder-sulfur",
+                        "game:ore-sulfur",
                         "game:saltpeter",
                         "game:soil-high-*",
-                        "game:looseores-lignite-*"
+                        "game:ore-lignite"
                     },
 
                     // Tier 4
@@ -193,8 +160,8 @@ namespace resourcecrates.Config
                         "game:nugget-limonite",
                         "game:nugget-magnetite",
                         "game:nugget-nativegold",
-                        "game:gear-rusty",
-                        "game:looseores-bituminouscoal-*",
+                        // "game:gear-rusty", // held item interaction
+                        "game:ore-bituminouscoal",
                         "game:rot"
                     },
 
@@ -204,8 +171,8 @@ namespace resourcecrates.Config
                         "game:ingot-blistersteel",
                         "game:nugget-ilmenite",
                         "game:nugget-chromite",
-                        "game:gear-temporal",
-                        "game:jonasparts-*"
+                        // "game:gear-temporal", // held item interaction
+                        "game:jonas*"
                     }
                 }
             };
@@ -268,13 +235,7 @@ namespace resourcecrates.Config
 
                     foreach (AssetLocation code in ExpandTierItemEntry(rawCode, context))
                     {
-                        if (resolved.ItemTierByCode.ContainsKey(code))
-                        {
-                            DebugLogger.Error($"ResourceCrateConfigLoader.ResolveConfig | Duplicate generatable item code detected after expansion: {code}");
-                            throw new InvalidOperationException($"Duplicate generatable item code in config: {code}");
-                        }
-
-                        resolved.ItemTierByCode[code] = tier;
+                        AddOrPromoteGeneratableItemTier(resolved.ItemTierByCode, code, tier, context);
                     }
                 }
             }
@@ -505,6 +466,46 @@ namespace resourcecrates.Config
 
             DebugLogger.Log($"ResourceCrateConfigLoader.ExpandTierItemEntry END | expanded {rawCode} to {matches.Count} matches");
             return matches;
+        }
+
+        private void AddOrPromoteGeneratableItemTier(
+            Dictionary<AssetLocation, int> itemTierByCode,
+            AssetLocation code,
+            int newTier,
+            string context)
+        {
+            DebugLogger.Log($"ResourceCrateConfigLoader.AddOrPromoteGeneratableItemTier START | context={context}, code={code}, newTier={newTier}");
+
+            if (itemTierByCode == null)
+            {
+                DebugLogger.Error("ResourceCrateConfigLoader.AddOrPromoteGeneratableItemTier | itemTierByCode was null");
+                throw new ArgumentNullException(nameof(itemTierByCode));
+            }
+
+            if (code == null)
+            {
+                DebugLogger.Error($"ResourceCrateConfigLoader.AddOrPromoteGeneratableItemTier | code was null at {context}");
+                throw new ArgumentNullException(nameof(code));
+            }
+
+            if (itemTierByCode.TryGetValue(code, out int existingTier))
+            {
+                if (newTier > existingTier)
+                {
+                    itemTierByCode[code] = newTier;
+                    DebugLogger.Log($"ResourceCrateConfigLoader.AddOrPromoteGeneratableItemTier | Promoted duplicate item {code} from tier {existingTier} to {newTier} (source: {context})");
+                }
+                else
+                {
+                    DebugLogger.Log($"ResourceCrateConfigLoader.AddOrPromoteGeneratableItemTier | Ignored duplicate item {code} at tier {newTier}, keeping existing tier {existingTier} (source: {context})");
+                }
+
+                DebugLogger.Log("ResourceCrateConfigLoader.AddOrPromoteGeneratableItemTier END | duplicate handled");
+                return;
+            }
+
+            itemTierByCode[code] = newTier;
+            DebugLogger.Log($"ResourceCrateConfigLoader.AddOrPromoteGeneratableItemTier END | added new item {code} at tier {newTier}");
         }
 
         private AssetLocation ParseWildcardAssetLocation(string rawCode, string context)

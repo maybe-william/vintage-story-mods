@@ -5,7 +5,7 @@ namespace resourcecrates.Util
     public static class DebugLogger
     {
         // Flip this to enable/disable debug logging
-        public const bool DebugEnabled = true;
+        public const bool DebugEnabled = false;
 
         private static ILogger logger;
 
