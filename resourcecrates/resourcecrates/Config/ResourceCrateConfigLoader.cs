@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Vintagestory.API.Common;
 using resourcecrates.Util;
 
@@ -76,9 +77,9 @@ namespace resourcecrates.Config
 
             ResourceCrateConfig config = new ResourceCrateConfig
             {
-                BaseTierRateMinutes = 180,
-                LowerTierFactor = 10,
-                HigherTierFactor = 100,
+                BaseTierRateMinutes = 5,
+                LowerTierFactor = 5,
+                HigherTierFactor = 50,
                 TierUpgradeItems = new List<string>
                 {
                     "game:ingot-copper",
@@ -89,7 +90,12 @@ namespace resourcecrates.Config
                 },
                 TierItems = new List<List<string>>
                 {
-                    new() { "game:log-grown-oak-ud" },
+                    new()
+                    {
+                        "game:log-*",
+                        "game:drygrass",
+                        "notwilliamawcud:notwilliamcud"
+                    },
                     new() { "game:plank-oak" },
                     new() { "game:nugget-nativecopper" },
                     new() { "game:nugget-cassiterite" },
@@ -121,6 +127,7 @@ namespace resourcecrates.Config
                 HigherTierFactor = rawConfig.HigherTierFactor
             };
 
+            // Upgrade items stay exact-only.
             for (int i = 0; i < rawConfig.TierUpgradeItems.Count; i++)
             {
                 string rawCode = rawConfig.TierUpgradeItems[i];
@@ -137,6 +144,7 @@ namespace resourcecrates.Config
                 resolved.UpgradeTierByCode[code] = targetTier;
             }
 
+            // Tier items support wildcard expansion.
             for (int tier = 0; tier < rawConfig.TierItems.Count; tier++)
             {
                 List<string> tierEntries = rawConfig.TierItems[tier];
@@ -150,15 +158,18 @@ namespace resourcecrates.Config
                 for (int j = 0; j < tierEntries.Count; j++)
                 {
                     string rawCode = tierEntries[j];
-                    AssetLocation code = ParseAssetLocation(rawCode, $"tier_items[{tier}][{j}]");
+                    string context = $"tier_items[{tier}][{j}]";
 
-                    if (resolved.ItemTierByCode.ContainsKey(code))
+                    foreach (AssetLocation code in ExpandTierItemEntry(rawCode, context))
                     {
-                        DebugLogger.Error($"ResourceCrateConfigLoader.ResolveConfig | Duplicate generatable item code detected: {code}");
-                        throw new InvalidOperationException($"Duplicate generatable item code in config: {code}");
-                    }
+                        if (resolved.ItemTierByCode.ContainsKey(code))
+                        {
+                            DebugLogger.Error($"ResourceCrateConfigLoader.ResolveConfig | Duplicate generatable item code detected after expansion: {code}");
+                            throw new InvalidOperationException($"Duplicate generatable item code in config: {code}");
+                        }
 
-                    resolved.ItemTierByCode[code] = tier;
+                        resolved.ItemTierByCode[code] = tier;
+                    }
                 }
             }
 
@@ -223,6 +234,12 @@ namespace resourcecrates.Config
                     DebugLogger.Error($"ResourceCrateConfigLoader.ValidateRawConfig | tier_upgrade_items[{i}] was blank");
                     throw new InvalidOperationException($"tier_upgrade_items[{i}] cannot be blank");
                 }
+
+                if (ContainsWildcard(rawCode))
+                {
+                    DebugLogger.Error($"ResourceCrateConfigLoader.ValidateRawConfig | tier_upgrade_items[{i}] cannot use wildcard syntax: {rawCode}");
+                    throw new InvalidOperationException($"tier_upgrade_items[{i}] cannot use wildcard syntax");
+                }
             }
 
             for (int tier = 0; tier < config.TierItems.Count; tier++)
@@ -244,6 +261,8 @@ namespace resourcecrates.Config
                         DebugLogger.Error($"ResourceCrateConfigLoader.ValidateRawConfig | tier_items[{tier}][{j}] was blank");
                         throw new InvalidOperationException($"tier_items[{tier}][{j}] cannot be blank");
                     }
+
+                    ValidateTierItemEntrySyntax(rawCode, $"tier_items[{tier}][{j}]");
                 }
             }
 
@@ -317,6 +336,133 @@ namespace resourcecrates.Config
 
             DebugLogger.Log($"ResourceCrateConfigLoader.ParseAssetLocation END | assetLocation={assetLocation}");
             return assetLocation;
+        }
+
+        private List<AssetLocation> ExpandTierItemEntry(string rawCode, string context)
+        {
+            DebugLogger.Log($"ResourceCrateConfigLoader.ExpandTierItemEntry START | context={context}, rawCode={rawCode}");
+
+            if (!ContainsWildcard(rawCode))
+            {
+                AssetLocation exact = ParseAssetLocation(rawCode, context);
+                DebugLogger.Log($"ResourceCrateConfigLoader.ExpandTierItemEntry END | exact match only: {exact}");
+                return new List<AssetLocation> { exact };
+            }
+
+            AssetLocation pattern = ParseWildcardAssetLocation(rawCode, context);
+            string domain = pattern.Domain;
+            string pathPattern = pattern.Path;
+
+            if (!pathPattern.EndsWith("*"))
+            {
+                DebugLogger.Error($"ResourceCrateConfigLoader.ExpandTierItemEntry | Wildcard must be suffix-only at {context}: {rawCode}");
+                throw new InvalidOperationException($"Wildcard must be suffix-only at {context}: {rawCode}");
+            }
+
+            string prefix = pathPattern.Substring(0, pathPattern.Length - 1);
+            List<AssetLocation> matches = new();
+
+            foreach (CollectibleObject collectible in api.World.Collectibles)
+            {
+                if (collectible?.Code == null) continue;
+
+                AssetLocation code = collectible.Code;
+
+                if (!string.Equals(code.Domain, domain, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (!code.Path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                matches.Add(code);
+            }
+
+            matches = matches
+                .Distinct()
+                .OrderBy(c => c.ToShortString())
+                .ToList();
+            
+            foreach (var match in matches)
+            {
+                DebugLogger.Log($"[WildcardExpand] {rawCode} -> {match}");
+            }
+            
+            if (matches.Count == 0)
+            {
+                DebugLogger.Error($"ResourceCrateConfigLoader.ExpandTierItemEntry | Wildcard entry matched no collectibles at {context}: {rawCode}");
+                throw new InvalidOperationException($"Wildcard entry matched no collectibles at {context}: {rawCode}");
+            }
+
+            DebugLogger.Log($"ResourceCrateConfigLoader.ExpandTierItemEntry END | expanded {rawCode} to {matches.Count} matches");
+            return matches;
+        }
+
+        private AssetLocation ParseWildcardAssetLocation(string rawCode, string context)
+        {
+            DebugLogger.Log($"ResourceCrateConfigLoader.ParseWildcardAssetLocation START | context={context}, rawCode={rawCode}");
+
+            if (string.IsNullOrWhiteSpace(rawCode))
+            {
+                DebugLogger.Error($"ResourceCrateConfigLoader.ParseWildcardAssetLocation | Blank code at {context}");
+                throw new InvalidOperationException($"Blank wildcard asset code at {context}");
+            }
+
+            int colonIndex = rawCode.IndexOf(':');
+            if (colonIndex <= 0 || colonIndex == rawCode.Length - 1)
+            {
+                DebugLogger.Error($"ResourceCrateConfigLoader.ParseWildcardAssetLocation | Invalid wildcard code '{rawCode}' at {context}");
+                throw new InvalidOperationException($"Invalid wildcard code '{rawCode}' at {context}");
+            }
+
+            string domain = rawCode.Substring(0, colonIndex);
+            string path = rawCode.Substring(colonIndex + 1);
+
+            if (string.IsNullOrWhiteSpace(domain) || string.IsNullOrWhiteSpace(path))
+            {
+                DebugLogger.Error($"ResourceCrateConfigLoader.ParseWildcardAssetLocation | Invalid wildcard code '{rawCode}' at {context}");
+                throw new InvalidOperationException($"Invalid wildcard code '{rawCode}' at {context}");
+            }
+
+            if (path.Count(c => c == '*') > 1)
+            {
+                DebugLogger.Error($"ResourceCrateConfigLoader.ParseWildcardAssetLocation | Only one wildcard is supported at {context}: {rawCode}");
+                throw new InvalidOperationException($"Only one wildcard is supported at {context}: {rawCode}");
+            }
+
+            if (path.Contains('*') && !path.EndsWith("*"))
+            {
+                DebugLogger.Error($"ResourceCrateConfigLoader.ParseWildcardAssetLocation | Wildcard must be suffix-only at {context}: {rawCode}");
+                throw new InvalidOperationException($"Wildcard must be suffix-only at {context}: {rawCode}");
+            }
+
+            AssetLocation result = new AssetLocation(domain, path);
+
+            DebugLogger.Log($"ResourceCrateConfigLoader.ParseWildcardAssetLocation END | assetLocation={result}");
+            return result;
+        }
+
+        private bool ContainsWildcard(string rawCode)
+        {
+            return !string.IsNullOrWhiteSpace(rawCode) && rawCode.Contains('*');
+        }
+
+        private void ValidateTierItemEntrySyntax(string rawCode, string context)
+        {
+            DebugLogger.Log($"ResourceCrateConfigLoader.ValidateTierItemEntrySyntax START | context={context}, rawCode={rawCode}");
+
+            if (!ContainsWildcard(rawCode))
+            {
+                ParseAssetLocation(rawCode, context);
+                DebugLogger.Log("ResourceCrateConfigLoader.ValidateTierItemEntrySyntax END | exact syntax valid");
+                return;
+            }
+
+            ParseWildcardAssetLocation(rawCode, context);
+            DebugLogger.Log("ResourceCrateConfigLoader.ValidateTierItemEntrySyntax END | wildcard syntax valid");
         }
     }
 }

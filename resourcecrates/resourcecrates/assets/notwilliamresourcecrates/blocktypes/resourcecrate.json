@@ -3,7 +3,11 @@
   "class": "notwilliamresourcecrates.ResourceCrate",
   "entityClass": "BEResourceCrate",
   "behaviors": [
-    { "name": "Container" }
+    { "name": "Container" },
+    {
+      "name": "PriorityInteract",
+      "placedPriority": true
+    }
   ],
   "attributes": {
     "defaultType": "normal-generic",
@@ -15,7 +19,7 @@
       "normal-generic": 1
     },
     "dialogTitleLangCode": {
-      "normal-generic": "Chest"
+      "normal-generic": "RC"
     }
   },
   "drawtype": "cube",

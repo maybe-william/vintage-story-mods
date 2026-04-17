@@ -251,11 +251,30 @@ namespace resourcecrates.BlockEntities
             ItemStack heldStack = handSlot.Itemstack;
             ItemSlot outputSlot = host.GetOutputSlot();
 
-            bool canChange =
-                !state.HasTargetItem
-                    ? ResourceCrateRules.CanAssignTarget(state, heldStack, config)
-                    : ResourceCrateRules.CanReplaceTarget(state, heldStack, outputSlot?.Itemstack, config);
+            bool hasTarget = state.HasTargetItem;
+            bool canAssign = false;
+            bool canReplace = false;
 
+            if (!hasTarget)
+            {
+                canAssign = ResourceCrateRules.CanAssignTarget(state, heldStack, config);
+            }
+            else
+            {
+                canReplace = ResourceCrateRules.CanReplaceTarget(state, heldStack, outputSlot?.Itemstack, config);
+            }
+            
+            bool canChange = !hasTarget ? canAssign : canReplace;
+
+            DebugLogger.Log(
+                $"[TargetDecision] held={heldStack?.Collectible?.Code}, " +
+                $"hasTarget={hasTarget}, " +
+                $"output={outputSlot?.Itemstack?.Collectible?.Code}, " +
+                $"canAssign={canAssign}, " +
+                $"canReplace={canReplace}, " +
+                $"canChange={canChange}"
+            );
+            
             if (!canChange)
             {
                 DebugLogger.Log("BlockEntityResourceCrate.TrySetOrReplaceTarget END -> false (rules denied)");

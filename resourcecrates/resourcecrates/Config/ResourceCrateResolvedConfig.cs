@@ -13,19 +13,20 @@ namespace resourcecrates.Config
 
         /// <summary>
         /// Maps a generatable item code to its configured tier.
+        /// Wildcards should already be expanded before insertion here.
         /// </summary>
         public Dictionary<AssetLocation, int> ItemTierByCode { get; set; } = new();
 
         /// <summary>
         /// Maps an upgrade item code to the crate tier it upgrades to.
         /// Example: game:ingot-iron -> 3
+        /// These remain exact-only, no wildcard expansion.
         /// </summary>
         public Dictionary<AssetLocation, int> UpgradeTierByCode { get; set; } = new();
 
         public ResourceCrateResolvedConfig()
         {
             DebugLogger.Log("ResourceCrateResolvedConfig.ctor START");
-
             DebugLogger.Log("ResourceCrateResolvedConfig.ctor END");
         }
 
