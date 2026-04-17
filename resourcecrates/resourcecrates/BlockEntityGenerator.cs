@@ -175,7 +175,8 @@ namespace resourcecrates
                 baseType,
                 "MarkDirty",
                 typeof(void),
-                typeof(bool)
+                typeof(bool),
+                typeof(IPlayer)
             );
 
             MethodInfo inheritedRegisterTick = FindRequiredMethod(
@@ -183,6 +184,7 @@ namespace resourcecrates
                 "RegisterGameTickListener",
                 typeof(long),
                 typeof(Action<float>),
+                typeof(int),
                 typeof(int)
             );
 
@@ -289,17 +291,18 @@ namespace resourcecrates
                 }
             );
 
-            // void CallMarkDirty(bool redrawOnClient)
+            // void CallMarkDirty(bool redrawOnClient, IPlayer skipPlayer)
             DefineSimpleForwardMethod(
                 tb,
                 hostInterfaceType,
                 "CallMarkDirty",
                 typeof(void),
-                new[] { typeof(bool) },
+                new[] { typeof(bool), typeof(IPlayer) },
                 il =>
                 {
                     il.Emit(OpCodes.Ldarg_0);
                     il.Emit(OpCodes.Ldarg_1);
+                    il.Emit(OpCodes.Ldarg_2);
                     il.Emit(OpCodes.Call, inheritedMarkDirty);
                     il.Emit(OpCodes.Ret);
                 }
@@ -311,12 +314,13 @@ namespace resourcecrates
                 hostInterfaceType,
                 "CallRegisterGameTickListener",
                 typeof(long),
-                new[] { typeof(Action<float>), typeof(int) },
+                new[] { typeof(Action<float>), typeof(int), typeof(int) },
                 il =>
                 {
-                    il.Emit(OpCodes.Ldarg_0);
-                    il.Emit(OpCodes.Ldarg_1);
-                    il.Emit(OpCodes.Ldarg_2);
+                    il.Emit(OpCodes.Ldarg_0); // this
+                    il.Emit(OpCodes.Ldarg_1); // Action<float>
+                    il.Emit(OpCodes.Ldarg_2); // interval
+                    il.Emit(OpCodes.Ldarg_3); // initialDelay
                     il.Emit(OpCodes.Call, inheritedRegisterTick);
                     il.Emit(OpCodes.Ret);
                 }

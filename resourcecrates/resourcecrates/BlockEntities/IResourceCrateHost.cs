@@ -27,8 +27,8 @@ namespace resourcecrates.BlockEntities
 
         void CallMarkDirty(bool redrawOnClient = false);
 
-        long CallRegisterGameTickListener(Action<float> onGameTick, int intervalMs);
-
+        long CallRegisterGameTickListener(Action<float> onTick, int intervalMs, int initialDelayMs = 0);
+        
         void CallUnregisterGameTickListener(long listenerId);
 
 
