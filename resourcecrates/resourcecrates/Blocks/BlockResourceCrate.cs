@@ -25,7 +25,7 @@ namespace resourcecrates.Blocks
             }
 
             BlockPos pos = blockSel.Position;
-            BlockEntityResourceCrate be = world.BlockAccessor.GetBlockEntity(pos) as BlockEntityResourceCrate;
+            IResourceCrateHost be = world.BlockAccessor.GetBlockEntity(pos) as IResourceCrateHost;
 
             if (be == null)
             {
@@ -36,12 +36,13 @@ namespace resourcecrates.Blocks
             ItemSlot handSlot = byPlayer.InventoryManager?.ActiveHotbarSlot;
             bool sneaking = byPlayer.Entity?.Controls?.Sneak == true;
 
-            // Normal right click: let inherited typed-container behavior open the GUI.
+            // Normal right click:
+            // return false so the normal block behavior chain can continue,
+            // including container behavior.
             if (!sneaking)
             {
-                bool result = base.OnBlockInteractStart(world, byPlayer, blockSel);
-                DebugLogger.Log($"BlockResourceCrate.OnBlockInteractStart END -> {result} (base interaction)");
-                return result;
+                DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> false (non-sneak; allow normal behavior chain)");
+                return false;
             }
 
             // Sneak + empty hand: do nothing special for now.
@@ -51,19 +52,17 @@ namespace resourcecrates.Blocks
                 return false;
             }
 
-            // Server performs the actual state mutation.
-            // Client returns true if it looks like a valid sneak action, to suppress normal open behavior.
+            // Client-side prediction:
+            // just suppress normal behavior if player is sneak-using with an item.
             if (world.Side == EnumAppSide.Client)
             {
-                bool clientHandled =
-                    be.State != null &&
-                    handSlot.Itemstack?.Collectible?.Code != null;
+                bool clientHandled = handSlot.Itemstack?.Collectible?.Code != null;
 
                 DebugLogger.Log($"BlockResourceCrate.OnBlockInteractStart END -> {clientHandled} (client prediction)");
                 return clientHandled;
             }
 
-            // Priority order:
+            // Server-side priority:
             // 1. Upgrade if valid
             // 2. Otherwise assign/replace target if valid
             if (be.TryUpgrade(byPlayer, handSlot))
@@ -94,7 +93,7 @@ namespace resourcecrates.Blocks
                 return null;
             }
 
-            BlockEntityResourceCrate be = world.BlockAccessor.GetBlockEntity(pos) as BlockEntityResourceCrate;
+            IResourceCrateHost be = world.BlockAccessor.GetBlockEntity(pos) as IResourceCrateHost;
             be?.WriteCrateStateToItemStack(stack);
 
             DebugLogger.Log($"BlockResourceCrate.OnPickBlock END | stack={stack.Collectible?.Code}");
@@ -111,7 +110,7 @@ namespace resourcecrates.Blocks
 
             if (world?.Side == EnumAppSide.Server)
             {
-                BlockEntityResourceCrate be = world.BlockAccessor.GetBlockEntity(pos) as BlockEntityResourceCrate;
+                IResourceCrateHost be = world.BlockAccessor.GetBlockEntity(pos) as IResourceCrateHost;
 
                 if (be != null)
                 {
