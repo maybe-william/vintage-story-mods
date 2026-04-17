@@ -40,7 +40,7 @@ namespace resourcecrates
 
             DebugLogger.Log($"BlockEntityGenerator | Resolved base type: {baseType.FullName}");
             DebugLogger.Log($"BlockEntityGenerator | Base type assembly: {baseType.Assembly.GetName().Name}");
-            
+
             ConstructorInfo? baseCtor = baseType.GetConstructor(
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance,
                 binder: null,
@@ -66,9 +66,8 @@ namespace resourcecrates
                 baseType
             );
 
-            // This call dynamically generates the entire class.
             AttachResourceCrateBridge(tb, baseType, baseCtor);
-            
+
             generatedType = tb.CreateType();
 
             DebugLogger.Log($"BlockEntityGenerator | Generated type: {generatedType.FullName}");
@@ -77,8 +76,7 @@ namespace resourcecrates
 
             return generatedType;
         }
-        
-        
+
         private static void AttachResourceCrateBridge(
             TypeBuilder tb,
             Type baseType,
@@ -86,29 +84,16 @@ namespace resourcecrates
         {
             DebugLogger.Log("BlockEntityGenerator.AttachResourceCrateBridge START");
 
-            // -----------------------------------------------------------------
-            // Resolve compile-time-known types
-            // -----------------------------------------------------------------
-
             Type hostInterfaceType = typeof(resourcecrates.BlockEntities.IResourceCrateHost);
             Type controllerType = typeof(resourcecrates.BlockEntities.BlockEntityResourceCrate);
 
             tb.AddInterfaceImplementation(hostInterfaceType);
-
-            // -----------------------------------------------------------------
-            // Private controller field:
-            // private BlockEntityResourceCrate _controller;
-            // -----------------------------------------------------------------
 
             FieldBuilder controllerField = tb.DefineField(
                 "_controller",
                 controllerType,
                 FieldAttributes.Private
             );
-
-            // -----------------------------------------------------------------
-            // Resolve controller ctor: new BlockEntityResourceCrate(IResourceCrateHost)
-            // -----------------------------------------------------------------
 
             ConstructorInfo controllerCtor = controllerType.GetConstructor(new[] { hostInterfaceType });
             if (controllerCtor == null)
@@ -117,10 +102,6 @@ namespace resourcecrates
                     $"Could not find constructor {controllerType.FullName}({hostInterfaceType.FullName})"
                 );
             }
-
-            // -----------------------------------------------------------------
-            // Resolve important inherited methods / properties from base chain
-            // -----------------------------------------------------------------
 
             MethodInfo baseInitialize = FindRequiredMethod(
                 baseType,
@@ -195,10 +176,16 @@ namespace resourcecrates
                 typeof(long)
             );
 
-            MethodInfo inheritedGetApi = FindRequiredPropertyGetter(
+            MethodInfo inheritedGetSide = FindRequiredPropertyGetter(
                 baseType,
-                "Api",
-                typeof(ICoreAPI)
+                "Side",
+                typeof(EnumAppSide)
+            );
+
+            MethodInfo inheritedGetWorld = FindRequiredPropertyGetter(
+                baseType,
+                "World",
+                typeof(IWorldAccessor)
             );
 
             MethodInfo inheritedGetInventory = FindPropertyGetterAnywhere(
@@ -228,15 +215,6 @@ namespace resourcecrates
                 );
             }
 
-            // -----------------------------------------------------------------
-            // Constructor:
-            // .ctor()
-            // {
-            //     base::.ctor();
-            //     this._controller = new BlockEntityResourceCrate((IResourceCrateHost)this);
-            // }
-            // -----------------------------------------------------------------
-
             ConstructorBuilder ctor = tb.DefineConstructor(
                 MethodAttributes.Public,
                 CallingConventions.Standard,
@@ -255,21 +233,32 @@ namespace resourcecrates
 
             ctorIl.Emit(OpCodes.Ret);
 
-            // -----------------------------------------------------------------
-            // Host interface methods
-            // -----------------------------------------------------------------
-
-            // ICoreAPI GetApi()
+            // EnumAppSide GetSide()
             DefineSimpleForwardMethod(
                 tb,
                 hostInterfaceType,
-                "GetApi",
-                typeof(ICoreAPI),
+                "GetSide",
+                typeof(EnumAppSide),
                 Type.EmptyTypes,
                 il =>
                 {
                     il.Emit(OpCodes.Ldarg_0);
-                    il.Emit(OpCodes.Call, inheritedGetApi);
+                    il.Emit(OpCodes.Call, inheritedGetSide);
+                    il.Emit(OpCodes.Ret);
+                }
+            );
+
+            // IWorldAccessor GetWorld()
+            DefineSimpleForwardMethod(
+                tb,
+                hostInterfaceType,
+                "GetWorld",
+                typeof(IWorldAccessor),
+                Type.EmptyTypes,
+                il =>
+                {
+                    il.Emit(OpCodes.Ldarg_0);
+                    il.Emit(OpCodes.Call, inheritedGetWorld);
                     il.Emit(OpCodes.Ret);
                 }
             );
@@ -308,7 +297,7 @@ namespace resourcecrates
                 }
             );
 
-            // long CallRegisterGameTickListener(Action<float>, int)
+            // long CallRegisterGameTickListener(Action<float>, int, int)
             DefineSimpleForwardMethod(
                 tb,
                 hostInterfaceType,
@@ -317,10 +306,10 @@ namespace resourcecrates
                 new[] { typeof(Action<float>), typeof(int), typeof(int) },
                 il =>
                 {
-                    il.Emit(OpCodes.Ldarg_0); // this
-                    il.Emit(OpCodes.Ldarg_1); // Action<float>
-                    il.Emit(OpCodes.Ldarg_2); // interval
-                    il.Emit(OpCodes.Ldarg_3); // initialDelay
+                    il.Emit(OpCodes.Ldarg_0);
+                    il.Emit(OpCodes.Ldarg_1);
+                    il.Emit(OpCodes.Ldarg_2);
+                    il.Emit(OpCodes.Ldarg_3);
                     il.Emit(OpCodes.Call, inheritedRegisterTick);
                     il.Emit(OpCodes.Ret);
                 }
@@ -341,11 +330,6 @@ namespace resourcecrates
                     il.Emit(OpCodes.Ret);
                 }
             );
-
-            // -----------------------------------------------------------------
-            // Base wrapper host methods
-            // These let the controller trigger base.* behavior legally.
-            // -----------------------------------------------------------------
 
             DefineBaseWrapperMethod(
                 tb,
@@ -410,10 +394,6 @@ namespace resourcecrates
                 new[] { typeof(IPlayer), typeof(System.Text.StringBuilder) }
             );
 
-            // -----------------------------------------------------------------
-            // Controller-forwarded interface methods used by block code
-            // -----------------------------------------------------------------
-
             DefineControllerForwardMethod(
                 tb,
                 hostInterfaceType,
@@ -440,14 +420,6 @@ namespace resourcecrates
                 typeof(void),
                 new[] { typeof(ItemStack) }
             );
-
-            // -----------------------------------------------------------------
-            // Virtual overrides that must exist on the generated BE itself
-            // and forward into the controller.
-            //
-            // These are NOT base-wrapper methods. These are the real overrides
-            // the engine will call.
-            // -----------------------------------------------------------------
 
             DefineControllerOverrideMethod(
                 tb,
@@ -553,7 +525,6 @@ namespace resourcecrates
                 il.Emit(OpCodes.Ldarg, (short)(i + 1));
             }
 
-            // Critical: call the inherited/base implementation directly.
             il.Emit(OpCodes.Call, baseMethod);
             il.Emit(OpCodes.Ret);
 

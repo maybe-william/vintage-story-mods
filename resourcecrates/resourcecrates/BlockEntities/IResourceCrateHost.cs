@@ -21,14 +21,16 @@ namespace resourcecrates.BlockEntities
         // Live BE / container / world access
         // ---------------------------------------------------------------------
 
-        ICoreAPI GetApi();
+        EnumAppSide GetSide();
+
+        IWorldAccessor GetWorld();
 
         ItemSlot GetOutputSlot();
 
-        void CallMarkDirty(bool redrawOnClient = false);
+        void CallMarkDirty(bool redrawOnClient = false, IPlayer skipPlayer = null);
 
-        long CallRegisterGameTickListener(Action<float> onTick, int intervalMs, int initialDelayMs = 0);
-        
+        long CallRegisterGameTickListener(Action<float> onGameTick, int intervalMs, int initialDelayMs = 0);
+
         void CallUnregisterGameTickListener(long listenerId);
 
 

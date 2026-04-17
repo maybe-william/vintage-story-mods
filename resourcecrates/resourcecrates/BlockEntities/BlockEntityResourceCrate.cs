@@ -65,7 +65,7 @@ namespace resourcecrates.BlockEntities
             {
                 EnsureLastUpdateInitialized();
 
-                serverTickListenerId = host.CallRegisterGameTickListener(OnServerTick, 1000);
+                serverTickListenerId = host.CallRegisterGameTickListener(OnServerTick, 1000, 0);
                 DebugLogger.Log($"BlockEntityResourceCrate.Initialize | Registered tick listener id={serverTickListenerId}");
             }
 
@@ -84,7 +84,7 @@ namespace resourcecrates.BlockEntities
             }
 
             EnsureLastUpdateInitialized();
-            host.CallMarkDirty(true);
+            host.CallMarkDirty(true, null);
 
             DebugLogger.Log($"BlockEntityResourceCrate.OnBlockPlaced END | state={state}");
         }
@@ -192,9 +192,7 @@ namespace resourcecrates.BlockEntities
         {
             DebugLogger.Log($"BlockEntityResourceCrate.TryUpgrade START | player={byPlayer?.PlayerName}, handSlot={handSlot?.Itemstack?.Collectible?.Code}, state={state}");
 
-            ICoreAPI api = host.GetApi();
-
-            if (api == null || api.Side != EnumAppSide.Server || byPlayer == null || handSlot?.Itemstack == null)
+            if (host.GetSide() != EnumAppSide.Server || byPlayer == null || handSlot?.Itemstack == null)
             {
                 DebugLogger.Log("BlockEntityResourceCrate.TryUpgrade END -> false (invalid preconditions)");
                 return false;
@@ -229,7 +227,7 @@ namespace resourcecrates.BlockEntities
             }
 
             EnsureLastUpdateInitialized();
-            host.CallMarkDirty(true);
+            host.CallMarkDirty(true, null);
 
             DebugLogger.Log($"BlockEntityResourceCrate.TryUpgrade END -> true | newState={state}");
             return true;
@@ -239,9 +237,7 @@ namespace resourcecrates.BlockEntities
         {
             DebugLogger.Log($"BlockEntityResourceCrate.TrySetOrReplaceTarget START | player={byPlayer?.PlayerName}, handSlot={handSlot?.Itemstack?.Collectible?.Code}, state={state}");
 
-            ICoreAPI api = host.GetApi();
-
-            if (api == null || api.Side != EnumAppSide.Server || byPlayer == null || handSlot?.Itemstack == null)
+            if (host.GetSide() != EnumAppSide.Server || byPlayer == null || handSlot?.Itemstack == null)
             {
                 DebugLogger.Log("BlockEntityResourceCrate.TrySetOrReplaceTarget END -> false (invalid preconditions)");
                 return false;
@@ -271,7 +267,7 @@ namespace resourcecrates.BlockEntities
             }
 
             EnsureLastUpdateInitialized();
-            host.CallMarkDirty(true);
+            host.CallMarkDirty(true, null);
 
             DebugLogger.Log($"BlockEntityResourceCrate.TrySetOrReplaceTarget END -> true | newState={state}");
             return true;
@@ -382,16 +378,20 @@ namespace resourcecrates.BlockEntities
         {
             try
             {
-                ICoreAPI api = host.GetApi();
+                if (host.GetSide() != EnumAppSide.Server)
+                {
+                    return;
+                }
 
-                if (api?.Side != EnumAppSide.Server)
+                IWorldAccessor world = host.GetWorld();
+                if (world?.Calendar == null)
                 {
                     return;
                 }
 
                 EnsureLastUpdateInitialized();
 
-                double nowHours = api.World.Calendar.TotalHours;
+                double nowHours = world.Calendar.TotalHours;
                 double elapsedHours = nowHours - state.LastUpdateTotalHours;
 
                 // Loaded-only progression anchor.
@@ -405,7 +405,7 @@ namespace resourcecrates.BlockEntities
                 ResourceCrateResolvedConfig config = ResolvedConfig;
                 if (!ResourceCrateRules.CanGenerate(state, config))
                 {
-                    host.CallMarkDirty();
+                    host.CallMarkDirty(false, null);
                     return;
                 }
 
@@ -416,7 +416,7 @@ namespace resourcecrates.BlockEntities
                 if (minutesPerItem <= 0)
                 {
                     state.ProgressMinutes = totalProgress;
-                    host.CallMarkDirty();
+                    host.CallMarkDirty(false, null);
                     return;
                 }
 
@@ -433,7 +433,7 @@ namespace resourcecrates.BlockEntities
 
                 if (insertedItems > 0 || elapsedMinutes > 0)
                 {
-                    host.CallMarkDirty();
+                    host.CallMarkDirty(false, null);
                 }
             }
             catch (Exception ex)
@@ -454,16 +454,16 @@ namespace resourcecrates.BlockEntities
                 return 0;
             }
 
-            ICoreAPI api = host.GetApi();
-            if (api?.World == null)
+            IWorldAccessor world = host.GetWorld();
+            if (world == null)
             {
-                DebugLogger.Log("BlockEntityResourceCrate.TryInsertProducedItems END -> 0 (api/world unavailable)");
+                DebugLogger.Log("BlockEntityResourceCrate.TryInsertProducedItems END -> 0 (world unavailable)");
                 return 0;
             }
 
             CollectibleObject collectible =
-                api.World.GetItem(state.TargetItemCode) ??
-                (CollectibleObject)api.World.GetBlock(state.TargetItemCode);
+                world.GetItem(state.TargetItemCode) ??
+                (CollectibleObject)world.GetBlock(state.TargetItemCode);
 
             if (collectible == null)
             {
@@ -511,16 +511,16 @@ namespace resourcecrates.BlockEntities
 
         private void EnsureLastUpdateInitialized()
         {
-            ICoreAPI api = host.GetApi();
+            IWorldAccessor world = host.GetWorld();
 
-            if (api?.World?.Calendar == null)
+            if (world?.Calendar == null)
             {
                 return;
             }
 
             if (state.LastUpdateTotalHours <= 0)
             {
-                state.LastUpdateTotalHours = api.World.Calendar.TotalHours;
+                state.LastUpdateTotalHours = world.Calendar.TotalHours;
             }
         }
 
