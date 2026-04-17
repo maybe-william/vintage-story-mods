@@ -42,7 +42,8 @@ namespace resourcecrates.Blocks
             if (!sneaking)
             {
                 DebugLogger.Log("BlockResourceCrate.OnBlockInteractStart END -> false (non-sneak; allow normal behavior chain)");
-                return false;
+                bool result = base.OnBlockInteractStart(world, byPlayer, blockSel);
+                return result; 
             }
 
             // Sneak + empty hand: do nothing special for now.
