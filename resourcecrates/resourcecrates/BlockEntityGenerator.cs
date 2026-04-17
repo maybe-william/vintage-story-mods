@@ -94,6 +94,12 @@ namespace resourcecrates
                 controllerType,
                 FieldAttributes.Private
             );
+            
+            FieldBuilder apiField = tb.DefineField(
+                "_resourceCratesApi",
+                typeof(ICoreAPI),
+                FieldAttributes.Private
+            );
 
             ConstructorInfo controllerCtor = controllerType.GetConstructor(new[] { hostInterfaceType });
             if (controllerCtor == null)
@@ -175,18 +181,8 @@ namespace resourcecrates
                 typeof(void),
                 typeof(long)
             );
-
-            MethodInfo inheritedGetSide = FindRequiredPropertyGetter(
-                baseType,
-                "Side",
-                typeof(EnumAppSide)
-            );
-
-            MethodInfo inheritedGetWorld = FindRequiredPropertyGetter(
-                baseType,
-                "World",
-                typeof(IWorldAccessor)
-            );
+            
+            
 
             MethodInfo inheritedGetInventory = FindPropertyGetterAnywhere(
                 baseType,
@@ -233,32 +229,17 @@ namespace resourcecrates
 
             ctorIl.Emit(OpCodes.Ret);
 
-            // EnumAppSide GetSide()
+            // ICoreAPI GetApi()
             DefineSimpleForwardMethod(
                 tb,
                 hostInterfaceType,
-                "GetSide",
-                typeof(EnumAppSide),
+                "GetApi",
+                typeof(ICoreAPI),
                 Type.EmptyTypes,
                 il =>
                 {
                     il.Emit(OpCodes.Ldarg_0);
-                    il.Emit(OpCodes.Call, inheritedGetSide);
-                    il.Emit(OpCodes.Ret);
-                }
-            );
-
-            // IWorldAccessor GetWorld()
-            DefineSimpleForwardMethod(
-                tb,
-                hostInterfaceType,
-                "GetWorld",
-                typeof(IWorldAccessor),
-                Type.EmptyTypes,
-                il =>
-                {
-                    il.Emit(OpCodes.Ldarg_0);
-                    il.Emit(OpCodes.Call, inheritedGetWorld);
+                    il.Emit(OpCodes.Ldfld, apiField);
                     il.Emit(OpCodes.Ret);
                 }
             );
@@ -421,11 +402,11 @@ namespace resourcecrates
                 new[] { typeof(ItemStack) }
             );
 
-            DefineControllerOverrideMethod(
+            DefineInitializeOverride(
                 tb,
                 controllerField,
-                baseInitialize,
-                "Initialize"
+                apiField,
+                baseInitialize
             );
 
             DefineControllerOverrideMethod(
@@ -702,6 +683,47 @@ namespace resourcecrates
             }
 
             return null;
+        }
+        
+        private static void DefineInitializeOverride(
+            TypeBuilder tb,
+            FieldBuilder controllerField,
+            FieldBuilder apiField,
+            MethodInfo baseVirtualMethod)
+        {
+            Type[] parameterTypes = baseVirtualMethod.GetParameters()
+                .Select(p => p.ParameterType)
+                .ToArray();
+
+            MethodInfo controllerMethod = FindRequiredMethod(
+                controllerField.FieldType,
+                "Initialize",
+                baseVirtualMethod.ReturnType,
+                parameterTypes
+            );
+
+            MethodBuilder mb = tb.DefineMethod(
+                baseVirtualMethod.Name,
+                MethodAttributes.Public | MethodAttributes.Virtual | MethodAttributes.HideBySig,
+                baseVirtualMethod.ReturnType,
+                parameterTypes
+            );
+
+            ILGenerator il = mb.GetILGenerator();
+
+            // this._resourceCratesApi = api;
+            il.Emit(OpCodes.Ldarg_0);
+            il.Emit(OpCodes.Ldarg_1);
+            il.Emit(OpCodes.Stfld, apiField);
+
+            // this._controller.Initialize(api);
+            il.Emit(OpCodes.Ldarg_0);
+            il.Emit(OpCodes.Ldfld, controllerField);
+            il.Emit(OpCodes.Ldarg_1);
+            il.Emit(OpCodes.Callvirt, controllerMethod);
+            il.Emit(OpCodes.Ret);
+
+            tb.DefineMethodOverride(mb, baseVirtualMethod);
         }
     }
 }

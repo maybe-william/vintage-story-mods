@@ -21,9 +21,8 @@ namespace resourcecrates.BlockEntities
         // Live BE / container / world access
         // ---------------------------------------------------------------------
 
-        EnumAppSide GetSide();
 
-        IWorldAccessor GetWorld();
+        ICoreAPI GetApi();
 
         ItemSlot GetOutputSlot();
 
