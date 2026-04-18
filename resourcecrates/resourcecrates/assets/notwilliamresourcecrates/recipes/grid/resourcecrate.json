@@ -1,8 +1,12 @@
 {
-  "ingredientPattern": "SSS,SKS,SSS",
+  "ingredientPattern": "GSG,SKS,GSG",
   "width": 3,
   "height": 3,
   "ingredients": {
+    "G": {
+      "type": "item",
+      "code": "game:drygrass"
+    },  
     "S": {
       "type": "item",
       "code": "game:stick"
