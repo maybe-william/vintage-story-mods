@@ -127,6 +127,7 @@ namespace resourcecrates.Config
                     {
                         "game:nugget-nativecopper",
                         "game:nugget-malachite",
+                        "game:rock-bauxite",
                         "game:stone-bauxite",
                         "game:clearquartz",
                         "game:smokyquartz",
